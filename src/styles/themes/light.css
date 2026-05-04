@@ -1,0 +1,10 @@
+:root,
+[data-theme='light'] {
+  --llm-color-bg: #f8fafc;
+  --llm-color-surface: #ffffff;
+  --llm-color-text: #0f172a;
+  --llm-color-text-muted: #475569;
+  --llm-color-border: #e2e8f0;
+  --llm-color-primary: #0ea5e9;
+  --llm-color-primary-foreground: #ffffff;
+}

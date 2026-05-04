@@ -1,0 +1,9 @@
+[data-theme='dark'] {
+  --llm-color-bg: #020617;
+  --llm-color-surface: #0f172a;
+  --llm-color-text: #e2e8f0;
+  --llm-color-text-muted: #94a3b8;
+  --llm-color-border: #1e293b;
+  --llm-color-primary: #38bdf8;
+  --llm-color-primary-foreground: #082f49;
+}

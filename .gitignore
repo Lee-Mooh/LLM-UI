@@ -26,5 +26,12 @@ dist-ssr
 # Claude Code
 .claude/
 
+# Agent skills
+.agents/
+skills-lock.json
+
 *storybook.log
 storybook-static
+
+#codex
+.codex/

@@ -1,7 +1,44 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { ConfigProvider } from './ConfigProvider'
 import { useConfig } from '../../hooks/useConfig'
+import { useStream } from '../../hooks/useStream'
+import { mockStream } from '../../utils/stream'
 import zhCN from '../../locale/zh-CN'
+
+function StreamDemo() {
+  const { content, state, start, cancel } = useStream()
+
+  const handleClick = () => {
+    if (state === 'streaming') {
+      cancel()
+    } else {
+      start(mockStream('你好，我是 AI 助手，很高兴为你服务！有什么我可以帮你的吗？', 80))
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-[var(--llm-color-border)] bg-[var(--llm-color-surface)] p-6">
+      <p className="mb-4 text-lg font-semibold text-[var(--llm-color-text)]">
+        流式输出演示
+      </p>
+      <button
+        onClick={handleClick}
+        className="rounded-md bg-[var(--llm-color-primary)] px-4 py-2 text-[var(--llm-color-primary-foreground)]"
+      >
+        {state === 'streaming' ? '暂停' : '开始'}
+      </button>
+      {content && (
+        <p className="mt-4 text-[var(--llm-color-text)]">
+          {content}
+          {state === 'streaming' && <span className="animate-pulse">|</span>}
+        </p>
+      )}
+      <p className="mt-2 text-xs text-[var(--llm-color-text-muted)]">
+        {state === 'idle' ? '' : state === 'streaming' ? '输出中...' : '已完成'}
+      </p>
+    </div>
+  )
+}
 
 function ThemeDisplay() {
   const config = useConfig()
@@ -131,6 +168,9 @@ function ThemeDisplay() {
           Accent
         </button>
       </div>
+
+      {/* 流式输出演示 */}
+      <StreamDemo />
     </div>
   )
 }

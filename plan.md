@@ -65,7 +65,6 @@ llm-ui/
 │   │   ├── common.ts        # LLMRole、messageStatus、BaseComponentProps
 │   │   └── config.ts        # ConfigProvider 类型定义（✅ 已完成）
 │   └── index.ts             # 统一出口
-├── stories/                 # Storybook stories (.stories.tsx)
 ├── __tests__/               # Vitest 测试
 ├── package.json
 ├── tsconfig.json              # 项目引用，指向 tsconfig.app.json 和 tsconfig.node.json
@@ -135,7 +134,19 @@ const Bubble = ({ role, className, ...props }) => {
 </ConfigProvider>
 ```
 
-### 3. 流式渲染管道
+### 3. Story 文件组织
+
+Story 文件与组件同目录（co-located），不单独建 stories 文件夹：
+
+```
+src/components/config-provider/
+  ├── ConfigProvider.tsx          # 库组件
+  └── ConfigProvider.stories.tsx  # Story 文档
+```
+
+好处：组件和 story 在一起，移动/重命名时自动跟着走，Storybook 通过 `src/**/*.stories.tsx` 自动发现。
+
+### 4. 流式渲染管道
 
 ```
 async generator / ReadableStream

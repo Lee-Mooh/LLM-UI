@@ -33,7 +33,7 @@ llm-ui/
 │   └── preview.ts           # 全局装饰器（主题切换 toolbar）
 ├── src/
 │   ├── components/          # 所有组件
-│   │   ├── config-provider/ # 全局配置
+│   │   ├── config-provider/ # 全局配置（✅ 已完成）
 │   │   ├── bubble/          # 对话气泡
 │   │   ├── conversation/    # 会话管理
 │   │   ├── sender/          # 输入框
@@ -47,15 +47,22 @@ llm-ui/
 │   │   └── citation/        # 引用溯源（高级）
 │   ├── hooks/               # 公共 hooks
 │   │   ├── useStream.ts     # 流式输出核心 hook
-│   │   ├── useTheme.ts      # 主题切换
-│   │   └── useConfig.ts     # 读取 ConfigProvider
+│   │   ├── useTheme.ts      # 主题切换（✅ 已完成）
+│   │   ├── useConfig.ts     # 读取 ConfigProvider（✅ 已完成）
+│   │   └── useLocale.ts     # 读取 locale 对象（✅ 已完成）
+│   ├── locale/              # 国际化语言包（✅ 已完成）
+│   │   ├── type.ts          # Locale 接口定义
+│   │   ├── zh-CN.ts         # 中文包
+│   │   └── en-US.ts         # 英文包
 │   ├── styles/              # 全局样式 & CSS Variables 定义
-│   │   ├── tokens.css       # 设计令牌（颜色、间距、圆角）
-│   │   └── themes/          # light.css / dark.css
+│   │   ├── tokens.css       # 设计令牌（颜色、间距、圆角、字体）
+│   │   └── themes/          # light.css / dark.css（oklch 色彩空间）
 │   ├── utils/               # 工具函数
 │   │   ├── stream.ts        # 流处理工具
 │   │   └── markdown.ts      # Markdown 解析工具
 │   ├── types/               # 公共类型定义
+│   │   ├── common.ts        # LLMRole、messageStatus、BaseComponentProps
+│   │   └── config.ts        # ConfigProvider 类型定义（✅ 已完成）
 │   └── index.ts             # 统一出口
 ├── stories/                 # Storybook stories (.stories.tsx)
 ├── __tests__/               # Vitest 测试
@@ -69,7 +76,11 @@ llm-ui/
 ├── tsup.config.ts             # 库打包配置（ESM + CJS + DTS）
 ├── eslint.config.js           # ESLint 10 扁平配置
 ├── .prettierrc
-└── .husky/
+├── .husky/
+├── .mcp.json                  # MCP 服务器配置（shadcn、assistant-ui）
+├── CLAUDE.md                  # Claude Code 项目指导文档
+├── daily.md                   # 开发日报（Day 1-3）
+└── skills-lock.json           # skills 锁文件
 ```
 
 ---
@@ -138,18 +149,18 @@ async generator / ReadableStream
 
 ### Phase 1: 基础设施 (Day 1-2)
 
-**Day 1: 项目初始化**
+**Day 1: 项目初始化** ✅
 
 - `pnpm create vite llm-ui --template react-ts`
 - 安装依赖：tailwindcss, @tailwindcss/vite, react, react-dom, typescript
 - 配置 tsconfig.json (strict, JSX transform)
 - 接入 `@tailwindcss/vite`，在 `src/index.css` 中使用 `@import "tailwindcss"` + CSS Variables tokens
 - 配置 vite.config.ts (library mode)
-- 创建 `src/styles/tokens.css` 设计令牌文件
-- 创建 `src/styles/themes/light.css` + `dark.css`
+- 创建 `src/styles/tokens.css` 设计令牌文件（oklch 色彩空间，zinc 色系）
+- 创建 `src/styles/themes/light.css` + `dark.css`（扩充至 18 个颜色变量）
 - 验证：`pnpm dev` 能跑起来
 
-**Day 2: 工具链 + Storybook**
+**Day 2: 工具链 + Storybook** ✅
 
 - 初始化 Storybook 10 (`pnpm dlx storybook@latest init`)
 - 配置 `.storybook/preview.ts`（主题切换 toolbar + 全局装饰器 withTheme）
@@ -159,6 +170,7 @@ async generator / ReadableStream
 - 配置 `vite.styles.config.ts` 样式单独打包
 - 创建 `src/index.ts` 统一出口骨架
 - 创建 `src/types/common.ts` 公共类型（LLMRole、messageStatus、BaseComponentProps）
+- 创建 `src/utils/cn.ts` 工具函数（clsx + tailwind-merge）
 - 测试框架：Vitest + Playwright (browser mode)，集成到 Storybook
 - 验证：`pnpm storybook` 能启动，`pnpm build` 能产出 dist
 
@@ -166,18 +178,21 @@ async generator / ReadableStream
 
 ### Phase 2: 核心基础设施组件 (Day 3-4)
 
-**Day 3: ConfigProvider**
+**Day 3: ConfigProvider** ✅
 
 - `src/components/config-provider/ConfigProvider.tsx`
   - React Context 管理全局配置
   - 主题 token 注入（CSS Variables 动态切换）
   - 深浅色模式切换 + 系统偏好检测
-  - 国际化 i18n 基础框架（createIntl 实现或自研轻量方案）
+  - 国际化 i18n 基础框架（Ant Design 风格 Locale 对象方案）
   - 组件全局默认参数注入
   - AI 请求配置（apiKey, model, baseURL）
 - `src/hooks/useConfig.ts` — 读取配置的 hook
-- `src/hooks/useTheme.ts` — 主题切换 hook
-- Story: 展示主题切换、深浅色效果
+- `src/hooks/useTheme.ts` — 主题切换 hook（mode, isDark, setMode, primaryColor）
+- `src/hooks/useLocale.ts` — 读取 locale 对象的 hook
+- `src/locale/` — i18n 语言包目录（type.ts, zh-CN.ts, en-US.ts）
+- `src/types/config.ts` — ConfigProvider 类型定义
+- Story: 展示主题切换、深浅色效果、颜色令牌一览
 
 **Day 4: 流式输出核心 + 代码规范强化**
 
@@ -404,17 +419,11 @@ async generator / ReadableStream
 
 ```tsx
 interface ConfigProviderProps {
-  theme?: {
-    mode: 'light' | 'dark' | 'system'
-    primaryColor?: string
-    cssVariables?: Record<string, string>
-  }
-  locale?: 'zh-CN' | 'en-US'
+  theme?: { mode?: 'light' | 'dark' | 'system'; primaryColor?: string }
+  locale?: 'zh-CN' | 'en-US' | Locale  // Locale 为语言包对象
   ai?: { apiKey: string; model: string; baseURL?: string }
-  components?: Partial<
-    Record<'Bubble' | 'Sender' | 'Mark', Record<string, any>>
-  >
-  children: React.ReactNode
+  components?: Record<string, Record<string, any>>  // 组件全局默认参数
+  children: ReactNode
 }
 ```
 

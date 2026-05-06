@@ -373,6 +373,140 @@ export function useTheme() {
 
 ---
 
+## Day 4: 流式输出核心
+
+### 完成内容
+
+- 创建 `src/hooks/useStream.ts` — 流式输出核心 hook
+- 创建 `src/utils/stream.ts` — 流处理工具函数
+- 创建 `src/utils/markdown.ts` — Markdown 流式安全解析
+
+### useStream hook
+
+管理流式输出的完整生命周期：idle → streaming → complete/error
+
+```ts
+// src/hooks/useStream.ts
+import { useState, useRef, useCallback } from 'react'
+
+export function useStream() {
+  const [state, setState] = useState<'idle' | 'streaming' | 'error' | 'complete'>('idle')
+  const [content, setContent] = useState('')
+  const abortRef = useRef(new AbortController())
+
+  const start = useCallback(async (generator: AsyncGenerator<string>) => {
+    abortRef.current = new AbortController()
+    setState('streaming')
+    setContent('')
+    try {
+      for await (const token of generator) {
+        if (abortRef.current.signal.aborted) break
+        setContent(prev => prev + token)
+      }
+      if (!abortRef.current.signal.aborted) {
+        setState('complete')
+      }
+    } catch {
+      setState('error')
+    }
+  }, [])
+
+  const cancel = useCallback(() => {
+    abortRef.current.abort()
+    setState('idle')
+  }, [])
+
+  return { content, state, start, cancel }
+}
+```
+
+关键设计：
+- **AbortController** 存在 useRef 里（变化不需要触发重渲染）
+- **for await...of** 自动等待 async generator 的下一个 token
+- **signal.aborted 检查** — 取消时中断循环，不触发 complete
+- **start 前清空 content** — 重新开始不会追加旧内容
+
+### 流处理工具
+
+```ts
+// src/utils/stream.ts
+
+// ReadableStream 转 async generator（fetch 返回的流转为可遍历的 generator）
+export async function* streamToGenerator(
+  stream: ReadableStream<Uint8Array>,
+  encoding: string = 'utf-8',
+): AsyncGenerator<string> {
+  const reader = stream.getReader()
+  const decoder = new TextDecoder(encoding)
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      yield decoder.decode(value, { stream: true })
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}
+
+// async generator 转 ReadableStream（反向转换）
+export function generatorToStream(gen: AsyncGenerator<string>): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder()
+  return new ReadableStream({
+    async pull(controller) {
+      const { value, done } = await gen.next()
+      if (done) {
+        controller.close()
+      } else {
+        controller.enqueue(encoder.encode(value))
+      }
+    },
+  })
+}
+
+// 模拟流式输出，用于测试和 Storybook
+export async function* mockStream(text: string, delay: number = 50): AsyncGenerator<string> {
+  for (const char of text) {
+    yield char
+    await new Promise(resolve => setTimeout(resolve, delay))
+  }
+}
+```
+
+### Markdown 流式安全解析
+
+流式输出时 Markdown 经常不完整（代码块未闭合），需要在渲染前临时补全：
+
+```ts
+// src/utils/markdown.ts
+export function sanitizeMarkdown(content: string): string {
+  // 处理未闭合的代码块 ```
+  const codeBlockCount = (content.match(/```/g) || []).length
+  if (codeBlockCount % 2 !== 0) {
+    content += '```'
+  }
+
+  // 处理未闭合的行内代码 `
+  const stripped = content.replace(/```/g, '')
+  const inlineCount = (stripped.match(/`/g) || []).length
+  if (inlineCount % 2 !== 0) {
+    content += '`'
+  }
+
+  return content
+}
+```
+
+### 遇到的问题
+
+- `for await (const token of content)` 误写 → 应遍历 generator 而非 content
+- `prev += token` 修改了参数 → 改为 `prev + token`
+- useCallback 使用场景理解（防止函数引用变化触发 useEffect）
+- useRef vs useState 存储 AbortController（不需要触发重渲染的值用 useRef）
+- ReadableStream 的 `pull` 回调机制理解
+
+---
+
 ## 累计产出
 
 ### 目录结构
@@ -386,7 +520,8 @@ src/
 ├── hooks/
 │   ├── useConfig.ts
 │   ├── useLocale.ts
-│   └── useTheme.ts
+│   ├── useTheme.ts
+│   └── useStream.ts          # Day 4 新增
 ├── locale/
 │   ├── type.ts
 │   ├── zh-CN.ts
@@ -400,7 +535,9 @@ src/
 │   ├── common.ts
 │   └── config.ts
 └── utils/
-    └── cn.ts
+    ├── cn.ts
+    ├── stream.ts              # Day 4 新增
+    └── markdown.ts            # Day 4 新增
 ```
 
 ### 关键决策

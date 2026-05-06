@@ -46,7 +46,7 @@ llm-ui/
 │   │   ├── thought/         # 思维链（高级）
 │   │   └── citation/        # 引用溯源（高级）
 │   ├── hooks/               # 公共 hooks
-│   │   ├── useStream.ts     # 流式输出核心 hook
+│   │   ├── useStream.ts     # 流式输出核心 hook（✅ 已完成）
 │   │   ├── useTheme.ts      # 主题切换（✅ 已完成）
 │   │   ├── useConfig.ts     # 读取 ConfigProvider（✅ 已完成）
 │   │   └── useLocale.ts     # 读取 locale 对象（✅ 已完成）
@@ -58,8 +58,9 @@ llm-ui/
 │   │   ├── tokens.css       # 设计令牌（颜色、间距、圆角、字体）
 │   │   └── themes/          # light.css / dark.css（oklch 色彩空间）
 │   ├── utils/               # 工具函数
-│   │   ├── stream.ts        # 流处理工具
-│   │   └── markdown.ts      # Markdown 解析工具
+│   │   ├── stream.ts        # 流处理工具（✅ 已完成）
+│   │   ├── markdown.ts      # Markdown 解析工具（✅ 已完成）
+│   │   └── cn.ts            # clsx + tailwind-merge（✅ 已完成）
 │   ├── types/               # 公共类型定义
 │   │   ├── common.ts        # LLMRole、messageStatus、BaseComponentProps
 │   │   └── config.ts        # ConfigProvider 类型定义（✅ 已完成）
@@ -194,15 +195,19 @@ async generator / ReadableStream
 - `src/types/config.ts` — ConfigProvider 类型定义
 - Story: 展示主题切换、深浅色效果、颜色令牌一览
 
-**Day 4: 流式输出核心 + 代码规范强化**
+**Day 4: 流式输出核心 + 代码规范强化** ✅
 
 - `src/hooks/useStream.ts`
   - 接受 async generator 或 ReadableStream
   - 管理 streaming/loading/error/complete 状态
-  - 支持 AbortController 取消
-  - token 增量累积
+  - 支持 AbortController 取消（useRef 存储，signal.aborted 检查）
+  - token 增量累积（setContent(prev => prev + token)）
 - `src/utils/stream.ts` — 流处理工具函数
-- `src/utils/markdown.ts` — Markdown 解析辅助
+  - `streamToGenerator` — ReadableStream 转 async generator
+  - `generatorToStream` — async generator 转 ReadableStream
+  - `mockStream` — 模拟流式输出，用于测试
+- `src/utils/markdown.ts` — Markdown 流式安全解析
+  - `sanitizeMarkdown` — 检测未闭合的 ``` 和 `，自动补全
 - 验证：写一个 mock 流式 generator，useStream 能正确累积
 
 ---

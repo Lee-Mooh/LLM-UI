@@ -25,7 +25,7 @@ function StreamDemo() {
         onClick={handleClick}
         className="rounded-md bg-[var(--llm-color-primary)] px-4 py-2 text-[var(--llm-color-primary-foreground)]"
       >
-        {state === 'streaming' ? '暂停' : '开始'}
+        {state === 'streaming' ? 'Cancel' : 'Start'}
       </button>
       {content && (
         <p className="mt-4 text-[var(--llm-color-text)]">

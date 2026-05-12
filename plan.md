@@ -225,7 +225,7 @@ async generator / ReadableStream
 
 ### Phase 3: 核心 UI 组件 (Day 5-9)
 
-**Day 5: Bubble 对话气泡**
+**Day 5: Bubble 对话气泡** ✅
 
 - `src/components/bubble/Bubble.tsx`
   - role 区分 (user / assistant / system)

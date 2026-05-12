@@ -12,7 +12,12 @@ function StreamDemo() {
     if (state === 'streaming') {
       cancel()
     } else {
-      start(mockStream('你好，我是 AI 助手，很高兴为你服务！有什么我可以帮你的吗？', 80))
+      start(
+        mockStream(
+          '你好，我是 AI 助手，很高兴为你服务！有什么我可以帮你的吗？',
+          80,
+        ),
+      )
     }
   }
 
@@ -54,7 +59,7 @@ function ThemeDisplay() {
           主题色：{config.theme.primaryColor}
         </p>
         <p className="text-[var(--llm-color-text-muted)]">
-          语言：{config.locale===zhCN?"简体中文":"English"}
+          语言：{config.locale === zhCN ? '简体中文' : 'English'}
         </p>
       </div>
 

@@ -4,19 +4,23 @@ export async function* streamToGenerator(
 ): AsyncGenerator<string> {
   const reader = stream.getReader()
   const decoder = new TextDecoder(encoding)
+
   try {
     while (true) {
       const { value, done } = await reader.read()
       if (done) break
       yield decoder.decode(value, { stream: true })
     }
-  } catch (error) {
+  } finally {
     reader.releaseLock()
   }
 }
 
-export function generatorToStream(gen: AsyncGenerator<string>): ReadableStream<Uint8Array> {
+export function generatorToStream(
+  gen: AsyncGenerator<string>,
+): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder()
+
   return new ReadableStream({
     async pull(controller) {
       const { value, done } = await gen.next()

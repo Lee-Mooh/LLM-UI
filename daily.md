@@ -507,6 +507,90 @@ export function sanitizeMarkdown(content: string): string {
 
 ---
 
+## Day 5: Bubble 对话气泡
+
+### 完成内容
+
+- 创建 `src/components/bubble/BubblePrimitive.tsx` — Headless 层
+- 创建 `src/components/bubble/Bubble.tsx` — Styled 层
+- 创建 `src/components/bubble/Bubble.stories.tsx` — Storybook 文档示例
+- 在 `src/index.ts` 导出 Bubble、BubblePrimitive 及其类型
+- 支持 `user / assistant / system` 三种角色
+- 支持头像插槽、时间戳、消息状态、加载状态、自定义 children
+- 使用 `data-slot` 作为 Styled 层稳定选择器，同时保留 BEM 类名供外部覆盖
+- 参考 assistant-ui / shadcn 风格调整视觉：user 为右侧柔和气泡，assistant/system 为无气泡文本
+
+### BubblePrimitive 结构
+
+```tsx
+<div className="llm-bubble" data-role={role} data-status={status}>
+  <div className="llm-bubble__avatar" data-slot="bubble-avatar" />
+  <div className="llm-bubble__body" data-slot="bubble-body">
+    <div className="llm-bubble__content" data-slot="bubble-content" />
+    <div className="llm-bubble__meta" data-slot="bubble-meta" />
+  </div>
+</div>
+```
+
+关键设计：
+
+- `className="llm-bubble__content"`：对外结构类名，符合项目 BEM 规范
+- `data-slot="bubble-content"`：内部样式定位点，参考 shadcn 的 slot 写法
+- `children ?? content`：支持纯文本和自定义内容插槽
+- `content?: string`：允许只通过 children 渲染内容
+
+### Bubble 样式策略
+
+Styled 层通过 Tailwind 子选择器集中控制 Primitive 内部结构：
+
+```tsx
+'[&_[data-slot=bubble-content]]:rounded-2xl'
+'[&_[data-slot=bubble-content]]:px-4'
+'[&_[data-slot=bubble-content]]:py-2.5'
+```
+
+角色差异：
+
+| role | 样式策略 |
+|---|---|
+| user | 靠右，柔和 `accent` 气泡，避免 primary 在深浅色主题中过于刺眼 |
+| assistant | 靠左，无气泡背景，作为正文回复展示 |
+| system | 居中，小号 muted 文本，无气泡背景 |
+
+### Storybook 覆盖
+
+`Bubble.stories.tsx` 已覆盖：
+
+- `User`
+- `Assistant`
+- `System`
+- `Sending`
+- `Sent`
+- `Error`
+- `Loading`
+- `CustomAvatar`
+
+### 验证结果
+
+- `pnpm exec tsc --noEmit -p tsconfig.app.json` ✅
+- `pnpm lint` ✅
+- `pnpm build` ✅
+
+### 顺手修复
+
+- `ConfigProvider` 的 `configContext` 移到 `configContext.ts`，解决 `react-refresh/only-export-components`
+- `ConfigProvider` 类型中的 `any` 改为 `unknown`
+- `streamToGenerator` 改用 `finally` 释放 reader lock，解决未使用 `error` 变量问题
+- `BubbleProps` 从空接口改为类型别名，解决 `no-empty-object-type`
+
+### 遇到的问题
+
+- Tailwind arbitrary variant 选择 `.llm-bubble__content` 时样式未稳定生效 → 改用 `data-slot` 选择器
+- 初始 user 气泡使用 `primary`，在浅色/深色主题下对比过强 → 改用 `accent`
+- assistant-ui 官网实际效果中 assistant/system 不一定使用气泡 → 调整为 user 有气泡，assistant/system 无气泡
+
+---
+
 ## 累计产出
 
 ### 目录结构
@@ -514,9 +598,14 @@ export function sanitizeMarkdown(content: string): string {
 ```
 src/
 ├── components/
-│   └── config-provider/
-│       ├── ConfigProvider.tsx
-│       └── ConfigProvider.stories.tsx
+│   ├── config-provider/
+│   │   ├── ConfigProvider.tsx
+│   │   ├── ConfigProvider.stories.tsx
+│   │   └── configContext.ts      # Day 5 拆分
+│   └── bubble/                   # Day 5 新增
+│       ├── Bubble.tsx
+│       ├── BubblePrimitive.tsx
+│       └── Bubble.stories.tsx
 ├── hooks/
 │   ├── useConfig.ts
 │   ├── useLocale.ts

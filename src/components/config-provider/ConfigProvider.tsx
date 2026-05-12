@@ -2,12 +2,10 @@ import {
   type ConfigContextValue,
   type ConfigProviderProps,
 } from '../../types/config'
-import { createContext, useState } from 'react'
+import { useState } from 'react'
 import zhCN from '../../locale/zh-CN'
 import enUS from '../../locale/en-US'
-export const configContext = createContext<ConfigContextValue | undefined>(
-  undefined,
-)
+import { configContext } from './configContext'
 
 export function ConfigProvider({
   theme,

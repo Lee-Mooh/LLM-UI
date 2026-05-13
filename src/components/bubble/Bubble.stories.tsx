@@ -33,7 +33,6 @@ export const System: Story = {
 export const Sending: Story = {
   args: {
     role: 'user',
-
     status: 'sending',
   },
 }
@@ -41,7 +40,6 @@ export const Sending: Story = {
 export const Sent: Story = {
   args: {
     role: 'user',
-
     status: 'sent',
   },
 }
@@ -49,7 +47,6 @@ export const Sent: Story = {
 export const Error: Story = {
   args: {
     role: 'user',
-
     status: 'error',
   },
 }
@@ -57,7 +54,6 @@ export const Error: Story = {
 export const Loading: Story = {
   args: {
     role: 'assistant',
-
     loading: true,
   },
 }
@@ -65,7 +61,7 @@ export const Loading: Story = {
 export const CustomAvatar: Story = {
   args: {
     role: 'assistant',
-    content: '这是一个带自定义头像的 AI 回复。',
+    content: '自定义头像',
     avatar: (
       <div className="flex size-full items-center justify-center bg-[var(--llm-color-primary)] text-xs font-medium text-[var(--llm-color-primary-foreground)]">
         AI

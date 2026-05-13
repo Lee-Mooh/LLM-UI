@@ -237,26 +237,29 @@ async generator / ReadableStream
 - BubblePrimitive (headless 层)
 - Stories: 不同角色、状态、自定义头像
 
-**Day 6: Mark 流式 Markdown 渲染**
+**Day 6: Mark 流式 Markdown 渲染** ✅
 
 - `src/components/mark/Mark.tsx`
   - 集成 react-markdown + remark-gfm
-  - 代码块语法高亮 (rehype-highlight 或 Prism)
-  - 流式打字机效果（与 useStream 联动）
-  - 超长文本自动折叠
+  - 支持表格、任务列表、删除线、链接等 GFM 语法
   - 图片懒加载
-  - 表格、列表等 Markdown 完整渲染
-- Stories: 静态 Markdown、流式渲染效果、代码块、超长文本折叠
+  - 流式内容兼容（与 useStream 联动，优先保证增量内容稳定渲染）
+  - 代码块先保持基础渲染，后续复用 Day 7 的 CodeHighlighter
+  - 不做按字符数的正文自动折叠，避免破坏主流 AI Chat 的连续阅读体验
+- `src/index.css`
+  - 补充 `.llm-mark` 基础 Markdown 排版样式：标题、段落、列表、引用、表格、行内代码、代码块、图片
+- Stories: 静态 Markdown、GFM 语法、图片、流式渲染效果、代码块、表格列表
 
 **Day 7: CodeHighlighter 代码高亮**
 
 - `src/components/code-highlighter/CodeHighlighter.tsx`
-  - 基于 Prism.js / highlight.js 语法高亮
-  - 语言标识 badge
-  - 一键复制按钮
-  - 长代码块展开/收起
+  - 基于 react-shiki / Shiki 语法高亮
+  - 支持 light/dark 双主题或统一暗色代码面板
+  - ChatGPT 风格代码块：深色圆角容器、语言标识 header、一键复制按钮
+  - 长代码块横向滚动，必要时支持展开/收起
   - 行号显示（可选）
-- Stories: 各语言代码、复制功能、展开收起
+  - Mark 的 fenced code block 复用 CodeHighlighter 渲染
+- Stories: 各语言代码、复制功能、亮暗主题、展开收起
 
 **Day 8: Sender 输入框**
 
@@ -467,7 +470,6 @@ interface MarkProps {
   streaming?: boolean
   onComplete?: () => void
   codeHighlight?: boolean
-  maxLength?: number // 超过则折叠
   className?: string
 }
 ```

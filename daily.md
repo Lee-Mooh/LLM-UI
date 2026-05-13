@@ -591,6 +591,88 @@ Styled 层通过 Tailwind 子选择器集中控制 Primitive 内部结构：
 
 ---
 
+## Day 6: Mark 流式 Markdown 渲染
+
+### 完成内容
+
+- 创建 `src/components/mark/Mark.tsx` — Markdown 渲染组件
+- 创建 `src/components/mark/Mark.stories.tsx` — Storybook 示例
+- 在 `src/index.ts` 导出 `Mark` 和 `MarkProps`
+- 安装 Markdown 渲染依赖：`react-markdown`, `remark-gfm`, `rehype-highlight`, `highlight.js`
+- 支持 GFM 语法：表格、任务列表、删除线、链接、列表
+- 支持图片懒加载：Markdown 图片统一添加 `loading="lazy"`
+- 支持基础代码块渲染与语法高亮
+- 通过 `useStream + mockStream` 增加流式 Markdown Story
+- 补充 `.llm-mark` 基础排版样式：标题、段落、列表、引用、表格、行内代码、代码块、图片
+- 明确不做 `maxLength` 正文折叠，避免破坏主流 AI Chat 的连续阅读体验
+
+### Mark 组件
+
+```tsx
+export interface MarkProps {
+  content: string
+  streaming?: boolean
+  onComplete?: () => void
+  codeHighlight?: boolean
+  className?: string
+}
+```
+
+核心渲染链路：
+
+```txt
+Markdown 字符串
+  → react-markdown
+  → remark-gfm 扩展 GFM 语法
+  → rehype-highlight 处理代码高亮 class
+  → React DOM
+```
+
+关键设计：
+
+- `Mark` 只接收 `content` 并负责渲染，不在组件内部管理流式状态
+- 流式累积由 `useStream` 负责，`Mark` 只响应 `content` 的变化重新渲染
+- `codeHighlight` 先作为基础开关保留，Day 7 的 `CodeHighlighter` 会接管更完整的代码块体验
+- 图片使用自定义 `img` renderer 添加 `loading="lazy"`
+
+### Storybook 覆盖
+
+`Mark.stories.tsx` 已覆盖：
+
+- `Basic`：标题、段落、加粗、斜体、删除线、链接、引用、列表、任务列表、表格、代码块、图片
+- `Streaming`：使用 `mockStream` 模拟模型逐字输出，并通过 `useStream` 累积后传给 `Mark`
+
+### 样式策略
+
+`.llm-mark` 样式集中写在 `src/index.css`，只影响 Mark 内部 Markdown，不污染全局标签：
+
+- 标题使用更紧凑的层级字号和上下间距
+- 段落、列表、引用、表格、代码块统一块级间距
+- 表格使用 `border-collapse` 和主题 border token
+- 行内代码使用 `:not(pre) > code` 区分代码块与 inline code
+- 代码块先保留基础圆角、边框、横向滚动和 monospace 字体
+- 图片限制 `max-width: 100%`，避免撑破消息容器
+
+### 技术决策
+
+- 不直接引入 assistant-ui 的 Markdown/Streamdown 实现，保持组件库独立
+- 学习 assistant-ui 的分层思路：`Mark` 负责 Markdown，Day 7 的 `CodeHighlighter` 负责代码块增强
+- 暂时使用 `rehype-highlight + highlight.js` 做基础高亮，Day 7 计划切换到 `react-shiki / Shiki`
+
+### 验证结果
+
+- `pnpm lint` ✅
+- `pnpm build` ✅
+
+### 遇到的问题
+
+- `maxLength` 与主流 ChatGPT/Gemini 阅读体验不一致 → 移除该能力规划
+- `rehype-highlight` 只添加高亮 class，不自带完整视觉体验 → 后续由 `CodeHighlighter` 统一处理
+- 流式 Markdown 示例中模板字符串缩进会影响 Markdown 解析 → 去掉多余缩进
+- Story 中组件名与 Story 导出同名会冲突 → 使用 `Basic` / `Streaming` 命名
+
+---
+
 ## 累计产出
 
 ### 目录结构
@@ -602,10 +684,13 @@ src/
 │   │   ├── ConfigProvider.tsx
 │   │   ├── ConfigProvider.stories.tsx
 │   │   └── configContext.ts      # Day 5 拆分
-│   └── bubble/                   # Day 5 新增
-│       ├── Bubble.tsx
-│       ├── BubblePrimitive.tsx
-│       └── Bubble.stories.tsx
+│   ├── bubble/                   # Day 5 新增
+│   │   ├── Bubble.tsx
+│   │   ├── BubblePrimitive.tsx
+│   │   └── Bubble.stories.tsx
+│   └── mark/                     # Day 6 新增
+│       ├── Mark.tsx
+│       └── Mark.stories.tsx
 ├── hooks/
 │   ├── useConfig.ts
 │   ├── useLocale.ts

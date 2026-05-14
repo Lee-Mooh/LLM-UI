@@ -34,8 +34,8 @@
     'Noto Serif SC', 'PingFang SC', serif;
 
   --llm-font-mono:
-    'JetBrains Mono', 'Fira Code', 'Source Code Pro', 'Cascadia Code',
-    Consolas, monospace;
+    'JetBrains Mono', 'Fira Code', 'Source Code Pro', 'Cascadia Code', Consolas,
+    monospace;
 
   --llm-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
   --llm-shadow-md: 0 8px 24px rgb(15 23 42 / 0.08);
@@ -191,15 +191,18 @@ export function ConfigProvider({
   locale,
   ai,
   children,
-  components
+  components,
 }: ConfigProviderProps) {
   const [themeState, setThemeState] = useState({
     mode: theme?.mode ?? 'system',
     primaryColor: theme?.primaryColor ?? 'oklch(0.205 0 0)',
   })
 
-  const setTheme = (newTheme: { mode?: 'light' | 'dark' | 'system'; primaryColor?: string }) => {
-    setThemeState(prev => ({ ...prev, ...newTheme }))
+  const setTheme = (newTheme: {
+    mode?: 'light' | 'dark' | 'system'
+    primaryColor?: string
+  }) => {
+    setThemeState((prev) => ({ ...prev, ...newTheme }))
   }
 
   const value: ConfigContextValue = {
@@ -251,7 +254,10 @@ export interface ConfigProviderProps {
 
 export interface ConfigContextValue {
   theme: { mode: 'light' | 'dark' | 'system'; primaryColor: string }
-  setTheme: (theme: { mode?: 'light' | 'dark' | 'system'; primaryColor?: string }) => void
+  setTheme: (theme: {
+    mode?: 'light' | 'dark' | 'system'
+    primaryColor?: string
+  }) => void
   locale: Locale
   components?: Record<string, Record<string, any>>
   ai?: {
@@ -353,15 +359,15 @@ export function useTheme() {
 
 对齐 shadcn v4 的 zinc 色系，新增 8 个语义：
 
-| 变量 | 用途 |
-|---|---|
-| `--llm-color-secondary` / `secondary-foreground` | 次要操作 |
-| `--llm-color-muted` / `muted-foreground` | 浅灰背景、禁用态 |
-| `--llm-color-accent` / `accent-foreground` | 悬浮/选中高亮 |
-| `--llm-color-destructive` / `destructive-foreground` | 错误/危险操作 |
-| `--llm-color-input` | 输入框边框 |
-| `--llm-color-ring` | focus 聚焦环 |
-| `--llm-color-code` / `code-foreground` | 代码块 |
+| 变量                                                 | 用途             |
+| ---------------------------------------------------- | ---------------- |
+| `--llm-color-secondary` / `secondary-foreground`     | 次要操作         |
+| `--llm-color-muted` / `muted-foreground`             | 浅灰背景、禁用态 |
+| `--llm-color-accent` / `accent-foreground`           | 悬浮/选中高亮    |
+| `--llm-color-destructive` / `destructive-foreground` | 错误/危险操作    |
+| `--llm-color-input`                                  | 输入框边框       |
+| `--llm-color-ring`                                   | focus 聚焦环     |
+| `--llm-color-code` / `code-foreground`               | 代码块           |
 
 ### 遇到的问题
 
@@ -390,7 +396,9 @@ export function useTheme() {
 import { useState, useRef, useCallback } from 'react'
 
 export function useStream() {
-  const [state, setState] = useState<'idle' | 'streaming' | 'error' | 'complete'>('idle')
+  const [state, setState] = useState<
+    'idle' | 'streaming' | 'error' | 'complete'
+  >('idle')
   const [content, setContent] = useState('')
   const abortRef = useRef(new AbortController())
 
@@ -401,7 +409,7 @@ export function useStream() {
     try {
       for await (const token of generator) {
         if (abortRef.current.signal.aborted) break
-        setContent(prev => prev + token)
+        setContent((prev) => prev + token)
       }
       if (!abortRef.current.signal.aborted) {
         setState('complete')
@@ -421,6 +429,7 @@ export function useStream() {
 ```
 
 关键设计：
+
 - **AbortController** 存在 useRef 里（变化不需要触发重渲染）
 - **for await...of** 自动等待 async generator 的下一个 token
 - **signal.aborted 检查** — 取消时中断循环，不触发 complete
@@ -450,7 +459,9 @@ export async function* streamToGenerator(
 }
 
 // async generator 转 ReadableStream（反向转换）
-export function generatorToStream(gen: AsyncGenerator<string>): ReadableStream<Uint8Array> {
+export function generatorToStream(
+  gen: AsyncGenerator<string>,
+): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder()
   return new ReadableStream({
     async pull(controller) {
@@ -465,10 +476,13 @@ export function generatorToStream(gen: AsyncGenerator<string>): ReadableStream<U
 }
 
 // 模拟流式输出，用于测试和 Storybook
-export async function* mockStream(text: string, delay: number = 50): AsyncGenerator<string> {
+export async function* mockStream(
+  text: string,
+  delay: number = 50,
+): AsyncGenerator<string> {
   for (const char of text) {
     yield char
-    await new Promise(resolve => setTimeout(resolve, delay))
+    await new Promise((resolve) => setTimeout(resolve, delay))
   }
 }
 ```
@@ -477,7 +491,7 @@ export async function* mockStream(text: string, delay: number = 50): AsyncGenera
 
 流式输出时 Markdown 经常不完整（代码块未闭合），需要在渲染前临时补全：
 
-```ts
+````ts
 // src/utils/markdown.ts
 export function sanitizeMarkdown(content: string): string {
   // 处理未闭合的代码块 ```
@@ -495,7 +509,7 @@ export function sanitizeMarkdown(content: string): string {
 
   return content
 }
-```
+````
 
 ### 遇到的问题
 
@@ -551,11 +565,11 @@ Styled 层通过 Tailwind 子选择器集中控制 Primitive 内部结构：
 
 角色差异：
 
-| role | 样式策略 |
-|---|---|
-| user | 靠右，柔和 `accent` 气泡，避免 primary 在深浅色主题中过于刺眼 |
-| assistant | 靠左，无气泡背景，作为正文回复展示 |
-| system | 居中，小号 muted 文本，无气泡背景 |
+| role      | 样式策略                                                      |
+| --------- | ------------------------------------------------------------- |
+| user      | 靠右，柔和 `accent` 气泡，避免 primary 在深浅色主题中过于刺眼 |
+| assistant | 靠左，无气泡背景，作为正文回复展示                            |
+| system    | 居中，小号 muted 文本，无气泡背景                             |
 
 ### Storybook 覆盖
 
@@ -673,6 +687,175 @@ Markdown 字符串
 
 ---
 
+## Day 7: CodeHighlighter 代码高亮
+
+### 完成内容
+
+- 创建 `src/components/code-highlighter/CodeHighlighter.tsx` — Shiki 代码高亮组件
+- 创建 `src/components/code-highlighter/CodeHighlighter.stories.tsx` — Storybook 示例
+- 在 `src/index.ts` 导出 `CodeHighlighter` 和 `CodeHighlighterProps`
+- 安装 `react-shiki`，移除 Day 6 临时方案 `rehype-highlight` / `highlight.js`
+- 将 `Mark` 的 fenced code block 接入 `CodeHighlighter`，Markdown 代码块统一走高亮组件
+- 支持语言 label 显示、代码图标、复制图标、复制成功 check 状态
+- 支持 light / dark 双主题，跟随 `data-theme` 与 `color-scheme` 切换
+- 支持长代码横向滚动
+- 支持可选行号显示：`showLineNumbers` / `startingLineNumber`
+- 补充代码块专用主题 token：`code-muted`、`code-border`、`code-hover`
+
+### CodeHighlighter 组件
+
+```tsx
+export interface CodeHighlighterProps {
+  code: string
+  copyable?: boolean
+  language?: string
+  showLineNumbers?: boolean
+  startingLineNumber?: number
+  className?: string
+}
+```
+
+核心结构分成 header 和 body 两层：
+
+```tsx
+<div className="llm-code-highlighter">
+  <div className="llm-code-highlighter__header">
+    <div className="llm-code-highlighter__title">
+      <CodeIcon />
+      <span className="llm-code-highlighter__language">{languageLabel}</span>
+    </div>
+    <button className="llm-code-highlighter__copy" />
+  </div>
+
+  <div className="llm-code-highlighter__body">
+    <ShikiHighlighter />
+  </div>
+</div>
+```
+
+关键设计：
+
+- `getLanguageLabel()` 将 `tsx`、`py`、`bash` 等代码 fence 语言名转为更适合展示的 label
+- `copyable` 默认为 `true`，复制按钮使用 icon-only button，并通过 `aria-label` 表达状态
+- `copied` 状态复制成功后切换为 check icon，`useEffect` 在 1.5s 后恢复
+- `addDefaultStyles={false}` 禁用 `react-shiki` 默认 padding，避免和组件库自己的代码块间距叠加
+- `showLanguage={false}` 关闭 Shiki 内置语言标识，统一使用自定义 header
+- `theme={{ light: 'github-light', dark: 'github-dark' }}` 配合根节点 `color-scheme` 做深浅色切换
+
+### Mark 集成方式
+
+Day 6 的 `rehype-highlight` 被移除，`Mark` 现在拦截 `react-markdown` 生成的 `pre` 节点：
+
+```tsx
+function getCodeLanguage(className?: string) {
+  return className?.match(/language-([\w-]+)/)?.[1] ?? 'text'
+}
+
+function getCodeContent(children: ReactNode) {
+  return String(children ?? '').replace(/\n$/, '')
+}
+
+function isCodeElement(
+  node: ReactNode,
+): node is ReactElement<CodeElementProps> {
+  return isValidElement<CodeElementProps>(node)
+}
+```
+
+Markdown 代码块大致会被解析成：
+
+```html
+<pre>
+  <code class="language-python">...</code>
+</pre>
+```
+
+因此 `pre` renderer 中读取 `children.props.className` 得到语言，读取 `children.props.children` 得到代码内容，再交给 `CodeHighlighter`：
+
+```tsx
+<CodeHighlighter
+  code={getCodeContent(children.props.children)}
+  language={getCodeLanguage(children.props.className)}
+/>
+```
+
+这样 `Mark` 仍然负责 Markdown 解析，代码块的视觉和交互统一由 `CodeHighlighter` 负责。
+
+### 样式策略
+
+代码块样式集中写在 `src/index.css`，沿用项目的 BEM 命名和 `--llm-` token：
+
+```css
+.llm-code-highlighter {
+  overflow: hidden;
+  border: 1px solid var(--llm-color-code-border);
+  border-radius: 28px;
+  color: var(--llm-color-code-foreground);
+  background: var(--llm-color-code);
+}
+```
+
+长代码横向滚动由外层 body 负责：
+
+```css
+.llm-code-highlighter__body {
+  overflow-x: auto;
+}
+
+.llm-code-highlighter__body pre {
+  min-width: max-content;
+  overflow: visible;
+}
+```
+
+含义是：外层 `.llm-code-highlighter__body` 是唯一滚动容器，内层 `pre` 按代码真实宽度撑开，超出后横向滚动，避免 `body` 和 `pre` 双层滚动。
+
+行号使用 `react-shiki` 生成的 `.rs-has-line-numbers` / `.rs-line-number` 结构，再由项目 CSS 自己定义 counter 样式：
+
+```css
+.llm-code-highlighter__body .rs-has-line-numbers {
+  counter-reset: line-number calc(var(--line-start, 1) - 1);
+}
+
+.llm-code-highlighter__body .rs-line-number::before {
+  counter-increment: line-number;
+  content: counter(line-number);
+  min-width: var(--rs-line-numbers-width);
+  justify-content: flex-end;
+  color: var(--rs-line-numbers-foreground);
+}
+```
+
+这样不需要手动 `code.split('\n')`，也不会破坏 Shiki 生成的语法高亮结构。
+
+### Storybook 覆盖
+
+`CodeHighlighter.stories.tsx` 已覆盖：
+
+- `Example`：Python 基础函数示例
+- `LongCode`：长 Python 代码，验证横向滚动
+- `WithLineNumbers`：长 Python 代码 + 行号显示
+
+### 技术决策
+
+- 使用 `react-shiki` 替换 `rehype-highlight`：Shiki 基于 TextMate grammar，视觉效果更接近主流编辑器和 AI Chat 代码块
+- 不做展开/收起：当前组件优先覆盖主流 ChatGPT/Gemini 代码块的核心体验，长代码先通过横向滚动解决
+- 不保留 `codeHighlight` 开关：代码块作为 AI Chat 基础能力，统一高亮，不暴露关闭分支
+- 不引入图片资源做 copy/check：直接使用内联 SVG，避免新增静态资源管理和打包路径问题
+
+### 验证结果
+
+- `pnpm build` ✅
+
+### 遇到的问题
+
+- `react-shiki` 默认样式会给 `pre` 添加 padding → 使用 `addDefaultStyles={false}`，由组件库 CSS 统一控制间距
+- Shiki 默认可显示语言标识 → 使用 `showLanguage={false}`，避免 body 内出现第二个语言 badge
+- 浅色主题下固定暗色 Shiki 主题可读性差 → 改为 light/dark 双主题，并给根节点补 `color-scheme`
+- 行号依赖 `react-shiki` 的 CSS class，但默认 CSS 被禁用 → 自己补 `.rs-line-number` counter 样式
+
+---
+
 ## 累计产出
 
 ### 目录结构
@@ -688,9 +871,12 @@ src/
 │   │   ├── Bubble.tsx
 │   │   ├── BubblePrimitive.tsx
 │   │   └── Bubble.stories.tsx
-│   └── mark/                     # Day 6 新增
-│       ├── Mark.tsx
-│       └── Mark.stories.tsx
+│   ├── mark/                     # Day 6 新增
+│   │   ├── Mark.tsx
+│   │   └── Mark.stories.tsx
+│   └── code-highlighter/         # Day 7 新增
+│       ├── CodeHighlighter.tsx
+│       └── CodeHighlighter.stories.tsx
 ├── hooks/
 │   ├── useConfig.ts
 │   ├── useLocale.ts
@@ -722,3 +908,4 @@ src/
 4. **i18n**：Ant Design 风格 Locale 对象，组件自管文案
 5. **状态管理**：React Context + useState，setTheme 支持部分更新
 6. **组件模式**：Headless (Primitive) + Styled 双层
+7. **代码高亮**：Markdown 负责结构解析，CodeHighlighter 负责代码块视觉与交互

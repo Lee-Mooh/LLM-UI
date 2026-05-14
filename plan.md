@@ -152,7 +152,8 @@ src/components/config-provider/
 async generator / ReadableStream
   → useStream() hook (累积 token，管理状态)
     → Mark 组件 (增量 Markdown 渲染)
-      → react-markdown + remark-gfm + rehype-highlight
+      → react-markdown + remark-gfm
+        → CodeHighlighter + react-shiki (fenced code block)
 ```
 
 ---
@@ -250,16 +251,21 @@ async generator / ReadableStream
   - 补充 `.llm-mark` 基础 Markdown 排版样式：标题、段落、列表、引用、表格、行内代码、代码块、图片
 - Stories: 静态 Markdown、GFM 语法、图片、流式渲染效果、代码块、表格列表
 
-**Day 7: CodeHighlighter 代码高亮**
+**Day 7: CodeHighlighter 代码高亮** ✅
 
 - `src/components/code-highlighter/CodeHighlighter.tsx`
   - 基于 react-shiki / Shiki 语法高亮
-  - 支持 light/dark 双主题或统一暗色代码面板
-  - ChatGPT 风格代码块：深色圆角容器、语言标识 header、一键复制按钮
-  - 长代码块横向滚动，必要时支持展开/收起
-  - 行号显示（可选）
+  - 支持 light/dark 双主题，跟随 `data-theme` 与 `color-scheme` 切换
+  - ChatGPT 风格代码块：圆角容器、语言标识 header、代码图标、一键复制按钮
+  - 复制成功后 copy icon 切换为 check icon，1.5s 后恢复
+  - 长代码块横向滚动
+  - 行号显示（可选）：`showLineNumbers` / `startingLineNumber`
   - Mark 的 fenced code block 复用 CodeHighlighter 渲染
-- Stories: 各语言代码、复制功能、亮暗主题、展开收起
+  - 不做展开/收起，保持主流 AI Chat 代码块的基础体验
+- `src/index.css`
+  - 新增 `.llm-code-highlighter` 样式与 Shiki 行号 counter 样式
+  - 新增根节点 `color-scheme`，保证 Shiki light/dark 主题正确切换
+- Stories: Python 示例、长代码横向滚动、行号显示
 
 **Day 8: Sender 输入框**
 
@@ -393,12 +399,11 @@ async generator / ReadableStream
 ```json
 {
   "dependencies": {
-    "react-markdown": "^9.0.0",
-    "remark-gfm": "^4.0.0",
-    "rehype-highlight": "^7.0.0",
-    "highlight.js": "^11.9.0",
-    "clsx": "^2.1.0",
-    "tailwind-merge": "^2.2.0"
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "react-shiki": "^0.10.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
@@ -469,7 +474,19 @@ interface MarkProps {
   content: string
   streaming?: boolean
   onComplete?: () => void
-  codeHighlight?: boolean
+  className?: string
+}
+```
+
+### CodeHighlighter
+
+```tsx
+interface CodeHighlighterProps {
+  code: string
+  copyable?: boolean
+  language?: string
+  showLineNumbers?: boolean
+  startingLineNumber?: number
   className?: string
 }
 ```

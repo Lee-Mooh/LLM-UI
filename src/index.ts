@@ -5,3 +5,6 @@ export type { BubblePrimitiveProps } from './components/bubble/BubblePrimitive'
 
 export { Mark } from './components/mark/Mark'
 export type { MarkProps } from './components/mark/Mark'
+
+export { CodeHighlighter } from './components/code-highlighter/CodeHighlighter'
+export type { CodeHighlighterProps } from './components/code-highlighter/CodeHighlighter'

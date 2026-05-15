@@ -79,7 +79,7 @@ llm-ui/
 ├── .husky/
 ├── .mcp.json                  # MCP 服务器配置（shadcn、assistant-ui）
 ├── CLAUDE.md                  # Claude Code 项目指导文档
-├── daily.md                   # 开发日报（Day 1-3）
+├── daily.md                   # 开发日报（Day 1-8）
 └── skills-lock.json           # skills 锁文件
 ```
 
@@ -267,18 +267,20 @@ async generator / ReadableStream
   - 新增根节点 `color-scheme`，保证 Shiki light/dark 主题正确切换
 - Stories: Python 示例、长代码横向滚动、行号显示
 
-**Day 8: Sender 输入框**
+**Day 8: Sender 输入框** ✅
 
 - `src/components/sender/Sender.tsx`
-  - 多行 textarea 自动高度 (auto-resize)
-  - 发送按钮 + 加载状态 spinner
+  - 多行 textarea 自动高度 (auto-resize)，移除最大字数限制
+  - 发送按钮 + 加载状态停止按钮
   - 禁用状态
   - 快捷键：Enter 发送，Shift+Enter 换行
+  - 快捷操作区域（上传、图片、联网搜索、深度思考）
+  - 模型切换菜单，支持点击菜单外区域自动收起
   - placeholder 支持
-  - 文件上传插槽（预留）
-  - onSend 回调
-- SenderPrimitive (headless)
-- Stories: 默认、禁用、加载中、自定义快捷键
+  - prefix / suffix 插槽用于自定义工具区
+  - onSend / onCancel / onPrefixAction / onModelChange / onVoiceClick 回调
+- `src/components/sender/Sender.stories.tsx`
+- Stories: 默认、模型切换、快捷操作、加载中、禁用、自定义插槽
 
 **Day 9: Think 思考过程 + Notification 通知**
 

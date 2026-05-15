@@ -8,3 +8,6 @@ export type { MarkProps } from './components/mark/Mark'
 
 export { CodeHighlighter } from './components/code-highlighter/CodeHighlighter'
 export type { CodeHighlighterProps } from './components/code-highlighter/CodeHighlighter'
+
+export { Sender } from './components/sender/Sender'
+export type { SenderProps } from './components/sender/Sender'

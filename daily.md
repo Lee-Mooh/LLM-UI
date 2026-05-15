@@ -856,6 +856,108 @@ Markdown 代码块大致会被解析成：
 
 ---
 
+## Day 8: Sender 输入框
+
+### 完成内容
+
+- 创建 `src/components/sender/Sender.tsx` — Chat 输入框组件
+- 创建 `src/components/sender/Sender.stories.tsx` — Storybook 示例
+- 在 `src/index.ts` 导出 `Sender` 和 `SenderProps`
+- 支持多行 textarea 输入，内容变化时自动调整高度
+- 移除最大字数限制，避免限制长上下文输入
+- 支持 Enter 发送、Shift+Enter 换行
+- 支持 loading 状态下切换为停止按钮，并通过 `onCancel` 回调取消
+- 支持左侧快捷操作菜单：上传附件、添加图片、联网搜索、深度思考
+- 支持右侧模型切换菜单，并在点击菜单外区域时自动收起
+- 支持 `prefix` / `suffix` 插槽自定义底部工具区
+- 将模型切换按钮与下拉项字体切换为 `PingFang SC`
+
+### Sender 组件
+
+```tsx
+export interface SenderProps {
+  onSend?: (message: string) => void
+  onCancel?: () => void
+  onPrefixAction?: (action: SenderPrefixAction) => void
+  onModelChange?: (model: string) => void
+  onVoiceClick?: () => void
+  loading?: boolean
+  disabled?: boolean
+  placeholder?: string
+  model?: string
+  modelOptions?: SenderModelOption[]
+  prefix?: ReactNode
+  suffix?: ReactNode
+  className?: string
+}
+```
+
+核心交互：
+
+- `message.trim()` 为空时禁用发送按钮
+- `loading` 为 true 时发送按钮切换为停止按钮
+- `onSend` 只在消息非空且非禁用、非加载状态下触发
+- 发送后清空输入内容
+- `modelOptions` 默认提供 GPT-4o、Claude Sonnet 4、Gemini 2.5 Pro、DeepSeek R1
+
+### 自动高度
+
+textarea 使用 `useRef` 获取 DOM，在 `message` 变化后重算高度：
+
+```tsx
+useEffect(() => {
+  const textarea = textareaRef.current
+
+  if (!textarea) return
+
+  textarea.style.height = 'auto'
+  textarea.style.height = `${textarea.scrollHeight}px`
+}, [message])
+```
+
+先重置为 `auto`，再设置为 `scrollHeight`，这样新增内容时会增高，删除内容时也能回缩。
+
+### 菜单外点击收起
+
+上传菜单和模型菜单分别使用 ref 指向菜单容器，文档级 `pointerdown` 事件判断点击目标是否在菜单内部：
+
+```tsx
+if (!prefixMenuRef.current?.contains(target)) {
+  setPrefixMenuOpen(false)
+}
+
+if (!modelMenuRef.current?.contains(target)) {
+  setModelMenuOpen(false)
+}
+```
+
+这样点击按钮或菜单项时保持当前菜单交互，点击 textarea、发送按钮或页面空白区域时自动关闭菜单。
+
+### Storybook 覆盖
+
+`Sender.stories.tsx` 已覆盖：
+
+- `Basic`：基础输入与发送
+- `WithModelSwitcher`：模型切换菜单
+- `WithActions`：快捷操作与语音按钮
+- `Loading`：加载中停止按钮
+- `Disabled`：禁用状态
+- `CustomSlots`：自定义 prefix / suffix 插槽
+
+### 验证结果
+
+- `pnpm lint` ✅
+- `pnpm build:lib` ✅
+
+### 遇到的问题
+
+- 初始实现暴露了 `maxLength`，与长上下文输入场景冲突 → 移除字数限制
+- 自动高度不能只依赖 `rows` → 通过 `scrollHeight` 主动同步高度
+- 菜单初始只能再次点击按钮关闭 → 增加菜单外点击收起
+- 模型切换最初误调整了字号/字重 → 改为真正切换 `font-family`
+
+---
+
 ## 累计产出
 
 ### 目录结构
@@ -874,9 +976,12 @@ src/
 │   ├── mark/                     # Day 6 新增
 │   │   ├── Mark.tsx
 │   │   └── Mark.stories.tsx
-│   └── code-highlighter/         # Day 7 新增
-│       ├── CodeHighlighter.tsx
-│       └── CodeHighlighter.stories.tsx
+│   ├── code-highlighter/         # Day 7 新增
+│   │   ├── CodeHighlighter.tsx
+│   │   └── CodeHighlighter.stories.tsx
+│   └── sender/                   # Day 8 新增
+│       ├── Sender.tsx
+│       └── Sender.stories.tsx
 ├── hooks/
 │   ├── useConfig.ts
 │   ├── useLocale.ts
@@ -909,3 +1014,4 @@ src/
 5. **状态管理**：React Context + useState，setTheme 支持部分更新
 6. **组件模式**：Headless (Primitive) + Styled 双层
 7. **代码高亮**：Markdown 负责结构解析，CodeHighlighter 负责代码块视觉与交互
+8. **输入交互**：Sender 负责输入、发送、快捷操作、模型切换和菜单交互

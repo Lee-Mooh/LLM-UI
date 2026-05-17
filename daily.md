@@ -1304,6 +1304,167 @@ Story 使用本地 state 模拟真实业务交互：
 
 ---
 
+## Day 11: Prompts 提示集 + Actions 快捷操作
+
+### 完成内容
+
+- 创建 `src/components/actions/ActionsPrimitive.tsx` — 消息快捷操作 Primitive 层
+- 创建 `src/components/actions/Actions.tsx` — Actions Styled 层
+- 创建 `src/components/actions/Actions.stories.tsx` — Storybook 示例
+- 创建 `src/components/prompts/PromptsPrimitive.tsx` — 提示词胶囊 Primitive 层
+- 创建 `src/components/prompts/Prompts.tsx` — Prompts Styled 层
+- 创建 `src/components/prompts/Prompts.stories.tsx` — Storybook 联动示例
+- 在 `src/index.ts` 导出 Actions、Prompts 组件、Primitive 和类型
+- Actions 支持复制、重新生成、纠错、反馈、自定义项、禁用状态、横向 / 纵向布局和尺寸配置
+- Prompts 使用轻量小胶囊形态，只展示标题和可选图标，不直接展示完整 prompt 内容
+- `PromptItem` 支持隐藏的 `prompt` 数据，点击胶囊后通过 `onPrompt(key, item)` 抛给外部
+- Sender 增加 `value`、`defaultValue`、`onChange`，支持外部受控和 Prompts 联动填充
+- Storybook 中 Prompts 示例已与 Sender 联动，点击提示词胶囊后将 prompt 填入 Sender
+
+### Actions 组件
+
+```tsx
+export type ActionVariant = 'default' | 'primary' | 'danger'
+
+export interface ActionItem {
+  key: string
+  label: string
+  icon?: ReactNode
+  disabled?: boolean
+  variant?: ActionVariant
+}
+
+export interface ActionsPrimitiveProps {
+  items: ActionItem[]
+  onAction?: (key: string, item: ActionItem) => void
+  copiedKey?: string
+  copiedDuration?: number
+  orientation?: 'horizontal' | 'vertical'
+  size?: 'sm' | 'md'
+  className?: string
+  style?: CSSProperties
+}
+```
+
+关键设计：
+
+- `ActionsPrimitive` 管理复制状态，点击 `copiedKey` 对应操作后临时切换为完成图标和“已复制”文案
+- 内置常见 action 图标：copy、regenerate / reload、edit / correct、like、dislike
+- `ActionItem.icon` 可覆盖默认图标，适合业务侧扩展自定义操作
+- `variant` 只表达语义色，不改变事件逻辑；具体业务由 `onAction` 接管
+- `Actions` 只负责 `cn('llm-actions', className)`，默认视觉在 `src/index.css`
+
+### Prompts 组件
+
+```tsx
+export interface PromptItem {
+  key: string
+  title: ReactNode
+  prompt?: string
+  description?: ReactNode
+  category?: ReactNode
+  icon?: ReactNode
+  disabled?: boolean
+}
+
+export interface PromptsPrimitiveProps {
+  items: PromptItem[]
+  onPrompt?: (key: string, item: PromptItem) => void
+  title?: ReactNode
+  description?: ReactNode
+  emptyText?: ReactNode
+  columns?: 1 | 2 | 3
+  className?: string
+  style?: CSSProperties
+}
+```
+
+关键设计：
+
+- Prompts 默认只渲染可点击胶囊，不在 UI 上展示完整 prompt 文本
+- 完整 prompt 作为 `PromptItem.prompt` 数据保存，点击后通过 `onPrompt` 抛给外部
+- 组件自身不绑定 Sender，不直接写输入框，保持通用性；联动由业务层或 Story 组合完成
+- 胶囊结构为 `icon + title`，图标可选，适合“生成图片 / 撰写或编辑 / 查找资料”等快捷入口
+- 空状态使用 `emptyText` 渲染，禁用项使用原生 `disabled` 防止触发回调
+
+### Sender 受控能力
+
+Day 11 为了支持 Prompts 联动，Sender 补充受控输入能力：
+
+```tsx
+export interface SenderPrimitiveProps {
+  value?: string
+  defaultValue?: string
+  onChange?: (message: string) => void
+  onSend?: (message: string) => void
+  // ...
+}
+```
+
+关键设计：
+
+- 未传 `value` 时继续使用内部 state，保持原有非受控用法
+- 传入 `value` 时由外部控制输入内容，`onChange` 抛出输入变化
+- `defaultValue` 用于初始化非受控内容，Storybook 中可配合重新挂载演示 prompt 填充
+- 发送成功后统一通过 `handleMessageChange('')` 清空输入，兼容受控和非受控模式
+
+### 样式策略
+
+Day 11 样式继续集中写在 `src/index.css`：
+
+```css
+.llm-actions {}
+.llm-actions__item {}
+.llm-actions__icon {}
+.llm-actions__label {}
+
+.llm-prompts {}
+.llm-prompts__list {}
+.llm-prompts__item {}
+.llm-prompts__icon {}
+.llm-prompts__item-title {}
+.llm-prompts__empty {}
+```
+
+视觉方向：
+
+- Actions 使用轻量 ghost button 形态，贴合消息气泡下方操作栏
+- copy 成功态使用 `data-copied` 改变图标和背景
+- Prompts 使用小胶囊按钮，不使用大卡片，避免占用输入区空间
+- 胶囊默认高度约 40px，图标 18px，标题 14px，更接近快捷入口而非内容卡片
+
+### Storybook 覆盖
+
+`Actions.stories.tsx` 已覆盖：
+
+- `Basic`：复制、重新生成、纠错
+- `Feedback`：复制、有帮助、没帮助
+- `Compact`：小尺寸
+- `Vertical`：纵向排列
+- `Disabled`：禁用操作
+
+`Prompts.stories.tsx` 已覆盖：
+
+- `Basic`：Prompts + Sender 联动示例
+- `WithoutIcon`：无图标胶囊
+- `Disabled`：禁用提示词
+- `Empty`：空状态
+
+### 验证结果
+
+- Storybook 手动验证 Prompts 点击后可填入 Sender ✅
+- `pnpm lint` ✅
+- `pnpm build` ✅
+
+### 遇到的问题
+
+- 初版 Prompts 做成大卡片并展示描述，与目标的小胶囊快捷入口不符 → 改为只展示标题和图标
+- Prompts 初版只 `console.log`，没有真实效果 → 增加 `PromptItem.prompt` 并在 Story 中联动 Sender
+- Sender 原本只有内部输入 state，外部无法写入内容 → 增加受控 / 非受控双模式
+- Storybook 中受控刷新表现不明显 → 在联动示例中使用 `key + defaultValue` 确保点击 prompt 后 Sender 重新初始化并显示内容
+
+---
+
 ## 累计产出
 
 ### 目录结构
@@ -1327,10 +1488,18 @@ src/
 │   │   ├── CodeHighlighter.tsx
 │   │   ├── CodeHighlighterPrimitive.tsx
 │   │   └── CodeHighlighter.stories.tsx
-│   ├── sender/                   # Day 8 新增，Day 9 拆分
+│   ├── sender/                   # Day 8 新增，Day 9 拆分，Day 11 补受控能力
 │   │   ├── Sender.tsx
 │   │   ├── SenderPrimitive.tsx
 │   │   └── Sender.stories.tsx
+│   ├── actions/                  # Day 11 新增
+│   │   ├── Actions.tsx
+│   │   ├── ActionsPrimitive.tsx
+│   │   └── Actions.stories.tsx
+│   ├── prompts/                  # Day 11 新增
+│   │   ├── Prompts.tsx
+│   │   ├── PromptsPrimitive.tsx
+│   │   └── Prompts.stories.tsx
 │   ├── think/                    # Day 9 新增
 │   │   ├── Think.tsx
 │   │   ├── ThinkPrimitive.tsx
@@ -1379,3 +1548,4 @@ src/
 7. **代码高亮**：Markdown 负责结构解析，CodeHighlighter 负责代码块视觉与交互
 8. **输入交互**：Sender 负责输入、发送、快捷操作、模型切换和菜单交互
 9. **会话侧边栏**：ConversationList 只负责列表、搜索、折叠和事件抛出，业务数据新增由外部控制
+10. **提示词联动**：Prompts 只负责展示快捷入口并抛出 prompt 数据，具体填充 Sender 等业务联动由外部组合完成

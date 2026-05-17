@@ -39,6 +39,16 @@ export type {
   NotificationType,
 } from './components/notification/NotificationPrimitive'
 
+export { Actions } from './components/actions/Actions'
+export { ActionsPrimitive } from './components/actions/ActionsPrimitive'
+export type { ActionsProps, ActionItem, ActionVariant } from './components/actions/Actions'
+export type { ActionsPrimitiveProps } from './components/actions/ActionsPrimitive'
+
+export { Prompts } from './components/prompts/Prompts'
+export { PromptsPrimitive } from './components/prompts/PromptsPrimitive'
+export type { PromptsProps, PromptItem } from './components/prompts/Prompts'
+export type { PromptsPrimitiveProps } from './components/prompts/PromptsPrimitive'
+
 export { ConversationItem } from './components/conversation/ConversationItem'
 export { ConversationItemPrimitive } from './components/conversation/ConversationItemPrimitive'
 export type {

@@ -14,6 +14,9 @@ export interface SenderModelOption {
 }
 
 export interface SenderPrimitiveProps {
+  value?: string
+  defaultValue?: string
+  onChange?: (message: string) => void
   onSend?: (message: string) => void
   onCancel?: () => void
   onPrefixAction?: (action: SenderPrefixAction) => void
@@ -165,6 +168,9 @@ function StopIcon() {
 }
 
 export function SenderPrimitive({
+  value,
+  defaultValue = '',
+  onChange,
   onSend,
   onCancel,
   onPrefixAction,
@@ -179,7 +185,9 @@ export function SenderPrimitive({
   suffix,
   className,
 }: SenderPrimitiveProps) {
-  const [message, setMessage] = useState('')
+  const [innerMessage, setInnerMessage] = useState(defaultValue)
+  const controlled = value !== undefined
+  const message = controlled ? value : innerMessage
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const prefixMenuRef = useRef<HTMLDivElement>(null)
   const modelMenuRef = useRef<HTMLDivElement>(null)
@@ -220,13 +228,21 @@ export function SenderPrimitive({
     }
   }, [])
 
+  const handleMessageChange = (nextMessage: string) => {
+    if (!controlled) {
+      setInnerMessage(nextMessage)
+    }
+
+    onChange?.(nextMessage)
+  }
+
   const handleSend = () => {
     const nextMessage = message.trim()
 
     if (!nextMessage || disabled || loading) return
 
     onSend?.(nextMessage)
-    setMessage('')
+    handleMessageChange('')
   }
 
   const handleAction = () => {
@@ -275,7 +291,7 @@ export function SenderPrimitive({
       <textarea
         className="llm-sender__textarea"
         disabled={disabled}
-        onChange={(event) => setMessage(event.target.value)}
+        onChange={(event) => handleMessageChange(event.target.value)}
         ref={textareaRef}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}

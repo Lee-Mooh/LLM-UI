@@ -38,3 +38,16 @@ export type {
   NotificationPrimitiveProps,
   NotificationType,
 } from './components/notification/NotificationPrimitive'
+
+export { ConversationItem } from './components/conversation/ConversationItem'
+export { ConversationItemPrimitive } from './components/conversation/ConversationItemPrimitive'
+export type {
+  ConversationItemProps,
+  ConversationRecord,
+} from './components/conversation/ConversationItem'
+export type { ConversationItemPrimitiveProps } from './components/conversation/ConversationItemPrimitive'
+
+export { ConversationList } from './components/conversation/ConversationList'
+export { ConversationListPrimitive } from './components/conversation/ConversationListPrimitive'
+export type { ConversationListProps } from './components/conversation/ConversationList'
+export type { ConversationListPrimitiveProps } from './components/conversation/ConversationListPrimitive'

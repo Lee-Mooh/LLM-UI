@@ -1105,6 +1105,205 @@ src/index.css           // 默认视觉样式，使用 BEM + CSS Variables
 
 ---
 
+## Day 10: Conversation 会话组件
+
+### 完成内容
+
+- 创建 `src/components/conversation/ConversationItemPrimitive.tsx` — 单条会话 Primitive 层
+- 创建 `src/components/conversation/ConversationItem.tsx` — 单条会话 Styled 层
+- 创建 `src/components/conversation/ConversationListPrimitive.tsx` — 会话侧边栏 Primitive 层
+- 创建 `src/components/conversation/ConversationList.tsx` — 会话侧边栏 Styled 层
+- 创建 `src/components/conversation/ConversationList.stories.tsx` — Storybook 交互示例
+- 在 `src/index.ts` 导出 Conversation 组件、Primitive 和类型
+- 支持 active 会话高亮、置顶排序、收藏 / 置顶 / 删除操作、搜索、新会话、侧边栏折叠
+- 会话项默认只展示标题和时间，不展示头像和消息预览，保持紧凑胶囊形态
+- 置顶 / 收藏状态使用 SVG 图标展示，点击图标可直接取消对应状态
+- 三点菜单使用浮层覆盖在卡片右侧，点击页面空白区域自动关闭
+- 右上角搜索按钮默认只显示图标，点击后展开搜索框
+- Storybook 示例支持真实交互：切换 active、新建会话、置顶、收藏、删除、搜索、折叠
+
+### ConversationItem 组件
+
+```tsx
+export interface ConversationRecord {
+  id: string
+  title: string
+  lastMessage?: string
+  timestamp?: Date | string
+  pinned?: boolean
+  favorite?: boolean
+}
+
+export interface ConversationItemPrimitiveProps {
+  conversation: ConversationRecord
+  active?: boolean
+  onSelect?: (id: string) => void
+  onDelete?: (id: string) => void
+  onPin?: (id: string) => void
+  onFavorite?: (id: string) => void
+  className?: string
+  style?: CSSProperties
+}
+```
+
+核心结构：
+
+```tsx
+<article className={className} data-active={active ? '' : undefined}>
+  <button className="llm-conversation-item__main" aria-current={active ? 'true' : undefined}>
+    <span className="llm-conversation-item__content">
+      <span className="llm-conversation-item__header">
+        <span className="llm-conversation-item__title">{conversation.title}</span>
+        <span className="llm-conversation-item__time">{timestamp}</span>
+      </span>
+    </span>
+  </button>
+
+  <div className="llm-conversation-item__actions">
+    <button className="llm-conversation-item__status-button" aria-label="取消置顶" />
+    <button className="llm-conversation-item__status-button" aria-label="取消收藏" />
+    <button className="llm-conversation-item__menu-trigger" aria-expanded={menuOpen} />
+    <div className="llm-conversation-item__menu" role="menu" />
+  </div>
+</article>
+```
+
+关键设计：
+
+- `ConversationItemPrimitive` 管理三点菜单展开状态、外部点击关闭、菜单操作和 ARIA
+- `ConversationItem` 只负责 `cn('llm-conversation-item', className)`，默认视觉在 `src/index.css`
+- 使用 `data-active`、`data-pinned`、`data-favorite` 暴露状态，便于 CSS 和外部覆盖
+- 会话项本体是 button，点击后通过 `onSelect(id)` 抛出选择事件
+- 已置顶 / 已收藏图标放在右侧操作区，点击图标直接触发 `onPin(id)` / `onFavorite(id)` 取消状态
+- `lastMessage` 不默认渲染，但保留在数据结构中用于搜索匹配
+
+### ConversationList 组件
+
+```tsx
+export interface ConversationListPrimitiveProps {
+  conversations: ConversationRecord[]
+  activeId?: string
+  onSelect?: (id: string) => void
+  onDelete?: (id: string) => void
+  onPin?: (id: string) => void
+  onFavorite?: (id: string) => void
+  onCollapsedChange?: (collapsed: boolean) => void
+  onNewConversation?: () => void
+  collapsed?: boolean
+  searchable?: boolean
+  searchPlaceholder?: string
+  title?: ReactNode
+  emptyText?: ReactNode
+  className?: string
+  style?: CSSProperties
+}
+```
+
+核心结构：
+
+```tsx
+<aside className={className} data-collapsed={collapsed ? '' : undefined}>
+  <div className="llm-conversation-list__header">
+    <div className="llm-conversation-list__toolbar">
+      <button className="llm-conversation-list__icon-button" aria-label="关闭边栏" />
+      <div className="llm-conversation-list__toolbar-actions">
+        <button className="llm-conversation-list__icon-button" aria-label="搜索会话" />
+        <button className="llm-conversation-list__icon-button" aria-label="打开新聊天" />
+      </div>
+    </div>
+    <label className="llm-conversation-list__search" />
+  </div>
+
+  <div className="llm-conversation-list__body">
+    <div className="llm-conversation-list__items" role="list">
+      <ConversationItem />
+    </div>
+  </div>
+</aside>
+```
+
+关键设计：
+
+- `ConversationListPrimitive` 管理搜索框展开状态和搜索关键词
+- `collapsed` 由外部控制，组件通过 `onCollapsedChange(nextCollapsed)` 抛出折叠变化
+- 新会话按钮只触发 `onNewConversation`，不在组件内部创建业务数据
+- 搜索匹配 `title` 和 `lastMessage`，即使消息预览不展示，仍可参与检索
+- 置顶排序规则：pinned 会话在前，同组内保持原始顺序
+- 默认不展示“历史会话”标题，只有外部显式传入 `title` 时才渲染
+- 取消拖拽缩放能力，侧边栏使用固定细长宽度，避免增加复杂布局状态
+
+### 样式策略
+
+Conversation 样式集中写在 `src/index.css`，使用 BEM 和 `--llm-*` token：
+
+```css
+.llm-conversation-list {}
+.llm-conversation-list__header {}
+.llm-conversation-list__toolbar {}
+.llm-conversation-list__toolbar-actions {}
+.llm-conversation-list__icon-button {}
+.llm-conversation-list__search {}
+.llm-conversation-list__body {}
+.llm-conversation-list__items {}
+.llm-conversation-list__empty {}
+
+.llm-conversation-item {}
+.llm-conversation-item__main {}
+.llm-conversation-item__content {}
+.llm-conversation-item__header {}
+.llm-conversation-item__title {}
+.llm-conversation-item__time {}
+.llm-conversation-item__actions {}
+.llm-conversation-item__status-button {}
+.llm-conversation-item__menu-trigger {}
+.llm-conversation-item__menu {}
+.llm-conversation-item__menu-item {}
+```
+
+视觉方向：
+
+- 侧边栏默认 `280px × 560px`，整体更细长
+- Storybook 装饰器去掉外层 padding，让组件与四周贴边展示
+- header 和 body 之间没有分割线
+- 会话项使用单行紧凑胶囊，只展示标题和时间
+- hover 背景加在整条 item 上，左侧内容和右侧按钮区连续高亮
+- active 状态使用 primary tint 和内描边
+- 三点菜单绝对定位在卡片右侧浮层，不撑开列表项高度
+
+### Storybook 覆盖
+
+`ConversationList.stories.tsx` 已覆盖：
+
+- `Basic`：基础列表、active 高亮、搜索按钮
+- `Searchable`：搜索框展开和过滤
+- `WithActions`：删除、置顶、收藏、选择
+- `PinnedAndFavorite`：置顶和收藏状态展示
+- `Empty`：空列表状态
+
+Story 使用本地 state 模拟真实业务交互：
+
+- 点击会话更新 `activeId`
+- 点击 `+` 新增一条会话并设为 active
+- 点击置顶 / 收藏菜单项更新会话状态
+- 点击置顶 / 收藏图标可取消状态
+- 点击删除从列表移除会话
+- 点击折叠按钮切换 `collapsed`
+
+### 验证结果
+
+- `pnpm lint` ✅
+- `pnpm build` ✅
+
+### 遇到的问题
+
+- `exactOptionalPropertyTypes` 下不能显式传递可能为 `undefined` 的可选 callback → 改用条件展开 `...(onSelect && { onSelect })`
+- Story 初始只 `console.log` 回调，点击不会更新 UI → 增加 `ConversationListStory` 包装组件维护 active 和列表状态
+- Storybook dev server 曾因 HMR 缓存继续引用已删除的头像 fallback → 重启 Storybook 后解决
+- 生成的 `storybook-static` 被 ESLint 扫描导致 lint 报外部产物错误 → 将 `storybook-static` 加入 `eslint.config.js` ignore
+- 边栏拖拽缩放增加了不必要的交互复杂度 → 根据设计反馈移除，保留固定细长布局
+
+---
+
 ## 累计产出
 
 ### 目录结构
@@ -1120,15 +1319,32 @@ src/
 │   │   ├── Bubble.tsx
 │   │   ├── BubblePrimitive.tsx
 │   │   └── Bubble.stories.tsx
-│   ├── mark/                     # Day 6 新增
+│   ├── mark/                     # Day 6 新增，Day 9 拆分
 │   │   ├── Mark.tsx
+│   │   ├── MarkPrimitive.tsx
 │   │   └── Mark.stories.tsx
-│   ├── code-highlighter/         # Day 7 新增
+│   ├── code-highlighter/         # Day 7 新增，Day 9 拆分
 │   │   ├── CodeHighlighter.tsx
+│   │   ├── CodeHighlighterPrimitive.tsx
 │   │   └── CodeHighlighter.stories.tsx
-│   └── sender/                   # Day 8 新增
-│       ├── Sender.tsx
-│       └── Sender.stories.tsx
+│   ├── sender/                   # Day 8 新增，Day 9 拆分
+│   │   ├── Sender.tsx
+│   │   ├── SenderPrimitive.tsx
+│   │   └── Sender.stories.tsx
+│   ├── think/                    # Day 9 新增
+│   │   ├── Think.tsx
+│   │   ├── ThinkPrimitive.tsx
+│   │   └── Think.stories.tsx
+│   ├── notification/             # Day 9 新增
+│   │   ├── Notification.tsx
+│   │   ├── NotificationPrimitive.tsx
+│   │   └── Notification.stories.tsx
+│   └── conversation/             # Day 10 新增
+│       ├── ConversationItem.tsx
+│       ├── ConversationItemPrimitive.tsx
+│       ├── ConversationList.tsx
+│       ├── ConversationListPrimitive.tsx
+│       └── ConversationList.stories.tsx
 ├── hooks/
 │   ├── useConfig.ts
 │   ├── useLocale.ts
@@ -1162,3 +1378,4 @@ src/
 6. **组件模式**：Headless (Primitive) + Styled 双层
 7. **代码高亮**：Markdown 负责结构解析，CodeHighlighter 负责代码块视觉与交互
 8. **输入交互**：Sender 负责输入、发送、快捷操作、模型切换和菜单交互
+9. **会话侧边栏**：ConversationList 只负责列表、搜索、折叠和事件抛出，业务数据新增由外部控制

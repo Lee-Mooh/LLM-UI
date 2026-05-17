@@ -958,6 +958,153 @@ if (!modelMenuRef.current?.contains(target)) {
 
 ---
 
+## Day 9: Think 思考过程 + Notification 通知
+
+### 完成内容
+
+- 创建 `src/components/think/ThinkPrimitive.tsx` — 思考过程 Headless 层
+- 创建 `src/components/think/Think.tsx` — Think Styled 层
+- 创建 `src/components/think/Think.stories.tsx` — Storybook 示例
+- 创建 `src/components/notification/NotificationPrimitive.tsx` — 单条通知 Primitive
+- 创建 `src/components/notification/Notification.tsx` — Notification / NotificationStack Styled 层
+- 创建 `src/components/notification/Notification.stories.tsx` — Storybook 示例
+- 支持 Think 的折叠 / 展开、`thinking / done` 状态、自定义文案、默认占位内容
+- 支持 Notification 的 `success / error / loading` 状态、自动关闭、手动关闭、进度条、堆叠展示
+- 将 Bubble 样式从 TSX Tailwind utility 迁移到 `src/index.css` 的 BEM 样式
+- 统一组件架构，将 Mark、CodeHighlighter、Sender、Think 拆分为 `Primitive + Styled` 双层
+- 更新 `CLAUDE.md`，明确后续组件必须遵循 Primitive + Styled + BEM CSS 的组织方式
+
+### Think 组件
+
+```tsx
+export interface ThinkPrimitiveProps {
+  content?: string
+  status?: 'thinking' | 'done'
+  label?: string
+  defaultOpen?: boolean
+  className?: string
+  style?: CSSProperties
+}
+```
+
+核心结构：
+
+```tsx
+<section className={className} data-open={open ? '' : undefined} data-status={status}>
+  <button className="llm-think__header" aria-expanded={open}>
+    <span className="llm-think__title">
+      <SparkIcon />
+      <span>{title}</span>
+      {status === 'thinking' ? <ThinkingDots /> : null}
+    </span>
+    <ChevronIcon />
+  </button>
+
+  <div className="llm-think__content" hidden={!open}>
+    <div className="llm-think__text">{content}</div>
+  </div>
+</section>
+```
+
+关键设计：
+
+- `ThinkPrimitive` 管理展开状态、状态文案、图标和结构
+- `Think` 只负责 `cn('llm-think', className)`，默认视觉在 `src/index.css`
+- 使用 `data-open` 控制箭头旋转，使用 `data-status='thinking'` 控制图标 pulse 动画
+- thinking dots 使用 CSS keyframes 做三个点的节奏动画
+
+### Notification 组件
+
+```tsx
+export type NotificationType = 'success' | 'error' | 'loading'
+
+export interface NotificationPrimitiveProps {
+  type?: NotificationType
+  title?: ReactNode
+  description?: ReactNode
+  duration?: number
+  showProgress?: boolean
+  closeable?: boolean
+  icon?: ReactNode
+  onClose?: () => void
+  className?: string
+  style?: CSSProperties
+}
+```
+
+核心结构：
+
+```tsx
+<section className={className} data-type={type} role={type === 'error' ? 'alert' : 'status'}>
+  <div className="llm-notification__icon" />
+  <div className="llm-notification__body">
+    <div className="llm-notification__title" />
+    <div className="llm-notification__description" />
+  </div>
+  <button className="llm-notification__close" />
+  <div className="llm-notification__progress" />
+</section>
+```
+
+关键设计：
+
+- `NotificationPrimitive` 管理自动关闭、ARIA、默认图标、关闭按钮和进度条
+- `Notification` 只负责 `cn('llm-notification', className)`
+- `NotificationStack` 接收通知数组，统一右上角 fixed 堆叠
+- 状态色通过局部变量 `--llm-notification-color` 控制，success 使用明确绿色，error 使用 destructive token，loading 使用 primary token
+- 外层 stack 使用 `pointer-events: none`，单条通知使用 `pointer-events: auto`，避免空白区域挡住页面交互
+
+### 组件架构统一
+
+Day 9 后，视觉组件统一为：
+
+```txt
+ComponentPrimitive.tsx  // 结构、状态、行为、ARIA、data-*、子元素 BEM class
+Component.tsx           // Styled 包装层，只合并 llm-* 根类和 className
+src/index.css           // 默认视觉样式，使用 BEM + CSS Variables
+```
+
+已完成拆分：
+
+- `BubblePrimitive` / `Bubble`
+- `MarkPrimitive` / `Mark`
+- `CodeHighlighterPrimitive` / `CodeHighlighter`
+- `SenderPrimitive` / `Sender`
+- `ThinkPrimitive` / `Think`
+- `NotificationPrimitive` / `Notification`
+
+### Storybook 覆盖
+
+`Think.stories.tsx` 已覆盖：
+
+- `Thinking`
+- `Done`
+- `Collapsed`
+- `CustomLabel`
+- `EmptyContent`
+
+`Notification.stories.tsx` 已覆盖：
+
+- `Success`
+- `Error`
+- `Loading`
+- `WithoutProgress`
+- `Stack`
+
+### 验证结果
+
+- `pnpm lint` ✅
+- `pnpm build` ✅
+
+### 遇到的问题
+
+- Day 9 初始方向误以为是 Chat/Conversation，读取 `plan.md` 后确认 Day 9 实际为 Think + Notification
+- Notification success 边框初版在暗色主题下偏棕/橙 → 改为主要使用 success 状态色自身，不再混入默认 border
+- Bubble 早期样式写在 `Bubble.tsx` 大段 Tailwind className 中，与组件库式 BEM CSS 组织不一致 → 迁移到 `src/index.css`
+- 为统一后续开发规范，将 Primitive + Styled 的职责写入 `CLAUDE.md`
+
+---
+
 ## 累计产出
 
 ### 目录结构

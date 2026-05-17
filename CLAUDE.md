@@ -39,26 +39,56 @@ pnpm format           # Prettier 自动格式化
 
 ## 组件架构
 
-每个组件遵循 **Headless (Primitive) + Styled 双层模式**：
+每个视觉组件遵循 **Headless (Primitive) + Styled 双层模式**，文件结构固定为：
+
+```txt
+src/components/example/
+├── ExamplePrimitive.tsx  # 结构、行为、状态
+├── Example.tsx           # Styled 包装层
+└── Example.stories.tsx   # Storybook 示例
+```
+
+职责划分：
+
+- **Primitive 层**：写 props 类型、DOM 结构、内部 state、事件处理、ARIA、`data-*` 状态、插槽结构、子元素 BEM class、默认文案/默认行为。
+- **Styled 层**：只导入 Primitive，使用 `cn()` 合并默认根类名和外部 `className`，然后透传 props。
+- **CSS 层**：所有视觉样式写在 `src/index.css`，使用 `.llm-*` 根类、BEM 子元素类和 CSS Variables。
 
 ```tsx
-// Primitive — 管理状态和行为，最小 DOM
-const BubblePrimitive = ({ role, children, ...props }) => {
-  return <div data-role={role} {...props}>{children}</div>
+// ExamplePrimitive.tsx — 管理结构、状态和行为
+export interface ExamplePrimitiveProps {
+  status?: 'loading' | 'done'
+  className?: string
 }
 
-// Styled — 包裹 Primitive + Tailwind 类
-const Bubble = ({ role, className, ...props }) => {
+export function ExamplePrimitive({ status = 'done', className }: ExamplePrimitiveProps) {
   return (
-    <BubblePrimitive
-      className={cn('rounded-2xl px-4 py-3', role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted', className)}
-      {...props}
-    />
+    <section className={className} data-status={status}>
+      <div className="llm-example__content">...</div>
+    </section>
   )
+}
+
+// Example.tsx — 只负责 styled root class
+import { ExamplePrimitive, type ExamplePrimitiveProps } from './ExamplePrimitive'
+import cn from '../../utils/cn'
+
+export type ExampleProps = ExamplePrimitiveProps
+
+export function Example({ className, ...props }: ExampleProps) {
+  return <ExamplePrimitive className={cn('llm-example', className)} {...props} />
 }
 ```
 
-使用 `src/utils/cn.ts` 中的 `cn()` 合并 Tailwind 类名（clsx + tailwind-merge）。
+对应样式写在 `src/index.css`：
+
+```css
+.llm-example { ... }
+.llm-example__content { ... }
+.llm-example[data-status='loading'] { ... }
+```
+
+使用 `src/utils/cn.ts` 中的 `cn()` 合并类名（clsx + tailwind-merge）。不要在 Styled 组件中写大段 Tailwind utility；默认视觉应沉淀到 `src/index.css`。
 
 ## 组件设计规范
 

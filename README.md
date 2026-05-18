@@ -81,14 +81,21 @@ export function Chat() {
   -> OpenAI-compatible 模型服务
 ```
 
-不要把模型 API Key 放进前端代码、Storybook stories 或任何 `VITE_*` 环境变量。Key 应该只存在于 Vercel 服务端环境变量中，例如：
+推荐把模型 API Key 只放在 Vercel 服务端环境变量中：
 
 ```txt
 DEEPSEEK_API_KEY=your-server-side-key
 DEEPSEEK_MODEL=deepseek-chat
 ```
 
-前端 Demo 只调用自己的后端接口：
+如果只部署静态 Storybook，也可以配置浏览器可见变量让 Demo 直连 DeepSeek。注意：`VITE_*` 会进入前端构建产物，任何访问页面的人都能在浏览器里看到这个 key。
+
+```txt
+VITE_DEEPSEEK_API_KEY=your-browser-visible-key
+VITE_DEEPSEEK_MODEL=deepseek-chat
+```
+
+前端 Demo 优先调用自己的后端接口：
 
 ```ts
 async function* requestAI(message: string) {
@@ -111,7 +118,7 @@ async function* requestAI(message: string) {
 }
 ```
 
-这样 npm 包保持安全、可复用，Vercel 上的在线 Demo 仍然可以拥有真实 AI 回复。
+这样 npm 包保持安全、可复用，Vercel 上的在线 Demo 仍然可以拥有真实 AI 回复。当前 Demo 在 `/api/chat` 不可用时，也支持通过 `VITE_DEEPSEEK_API_KEY` 直接从浏览器请求 DeepSeek。
 
 ## 组件矩阵
 

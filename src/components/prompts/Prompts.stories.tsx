@@ -8,6 +8,14 @@ const meta: Meta<typeof Prompts> = {
   title: 'Components/Prompts',
   component: Prompts,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Prompts 用于展示可点击的提示词入口，常与 Sender 组合，在空状态或输入区上方引导用户快速开始。',
+      },
+    },
+  },
   decorators: [
     (Story) => (
       <div style={{ paddingTop: 120 }}>
@@ -138,7 +146,7 @@ function PromptSenderDemo({ items }: { items: PromptItem[] }) {
       <Sender
         onChange={setMessage}
         onSend={(value) => console.log('send:', value)}
-        placeholder="点击上方胶囊后，prompt 会填入 Sender"
+        placeholder="选择一个方向，或直接输入你的问题..."
         value={message}
       />
     </div>

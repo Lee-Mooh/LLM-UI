@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { expect, within } from 'storybook/test'
 import { type Meta, type StoryObj } from '@storybook/react-vite'
 
 import { useStream } from '../../hooks/useStream'
@@ -9,6 +10,14 @@ const meta: Meta<typeof Mark> = {
   title: 'Components/Mark',
   component: Mark,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Mark 用于渲染模型输出中的 Markdown 内容，支持 GFM、表格、任务列表、链接、图片懒加载，并将 fenced code block 交给 CodeHighlighter 渲染。',
+      },
+    },
+  },
 }
 
 export default meta
@@ -16,6 +25,14 @@ export default meta
 type Story = StoryObj<typeof Mark>
 
 export const Basic: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '基础示例覆盖标题、段落、引用、列表、任务列表、表格、代码块和图片等常见 Markdown 内容。',
+      },
+    },
+  },
   args: {
     content: `# Hello Mark
 
@@ -62,6 +79,16 @@ function Greeting({ name }: { name: string }) {
 
 ![示例图片](https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=960&auto=format&fit=crop&q=80)
 `,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    await expect(
+      canvas.getByRole('heading', { name: 'Hello Mark' }),
+    ).toBeInTheDocument()
+    await expect(canvas.getByText('支持无序列表')).toBeInTheDocument()
+    await expect(canvas.getByText('Mark')).toBeInTheDocument()
+    await expect(canvas.getByText(/function Greeting/)).toBeInTheDocument()
   },
 }
 const streamingContent = `# 流式 Markdown

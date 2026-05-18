@@ -1,8 +1,20 @@
 {
   "name": "@llm-ui/react",
-  "private": true,
   "version": "0.1.0",
+  "description": "React components for building AI and LLM chat interfaces.",
   "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "react",
+    "llm",
+    "ai",
+    "chat",
+    "components",
+    "storybook"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "dist"
   ],
@@ -27,7 +39,9 @@
     "preview": "vite preview",
     "prepare": "husky",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "test": "vitest --project storybook --run",
+    "test:storybook": "vitest --project storybook --run"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

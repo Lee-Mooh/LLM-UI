@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import ShikiHighlighter from 'react-shiki'
+import { useShikiHighlighter } from 'react-shiki'
 
 export interface CodeHighlighterPrimitiveProps {
   code: string
@@ -145,6 +145,8 @@ function CopyIcon() {
   )
 }
 
+const codeTheme = { light: 'github-light', dark: 'github-dark' }
+
 function CheckIcon() {
   return (
     <svg
@@ -177,6 +179,11 @@ export function CodeHighlighterPrimitive({
 }: CodeHighlighterPrimitiveProps) {
   const [copied, setCopied] = useState(false)
   const languageLabel = getLanguageLabel(language)
+  const highlightedCode = useShikiHighlighter(code, language, codeTheme, {
+    defaultColor: 'light-dark()',
+    showLineNumbers,
+    startingLineNumber,
+  })
 
   useEffect(() => {
     if (!copied) return
@@ -215,17 +222,13 @@ export function CodeHighlighterPrimitive({
       </div>
 
       <div className="llm-code-highlighter__body">
-        <ShikiHighlighter
-          addDefaultStyles={false}
-          defaultColor="light-dark()"
-          language={language}
-          showLanguage={false}
-          showLineNumbers={showLineNumbers}
-          startingLineNumber={startingLineNumber}
-          theme={{ light: 'github-light', dark: 'github-dark' }}
-        >
-          {code}
-        </ShikiHighlighter>
+        {highlightedCode ? (
+          <div className="rs-root not-prose">{highlightedCode}</div>
+        ) : (
+          <pre aria-hidden="true" className="llm-code-highlighter__placeholder">
+            <code>{code}</code>
+          </pre>
+        )}
       </div>
     </div>
   )

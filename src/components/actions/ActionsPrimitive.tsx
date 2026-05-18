@@ -159,6 +159,81 @@ function ThumbsDownIcon() {
   )
 }
 
+function SummaryIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="16"
+      viewBox="0 0 24 24"
+      width="16"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M5 5.5h14M5 10h10M5 14.5h7"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="m15 17 1.6 1.6L20 15"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  )
+}
+
+function PolishIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="16"
+      viewBox="0 0 24 24"
+      width="16"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="m4 20 6.2-1.4L19 9.8 14.2 5 5.4 13.8z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M15.5 3.5 20.5 8.5M5 4.5h3M6.5 3v3M19 17h2M20 16v2"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  )
+}
+
+function ExplainCodeIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="16"
+      viewBox="0 0 24 24"
+      width="16"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="m8 9-3 3 3 3M16 9l3 3-3 3M13.5 6.5l-3 11"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  )
+}
+
 const defaultIcons: Record<string, ReactNode> = {
   copy: <CopyIcon />,
   regenerate: <ReloadIcon />,
@@ -167,6 +242,9 @@ const defaultIcons: Record<string, ReactNode> = {
   correct: <EditIcon />,
   like: <ThumbsUpIcon />,
   dislike: <ThumbsDownIcon />,
+  summary: <SummaryIcon />,
+  polish: <PolishIcon />,
+  'explain-code': <ExplainCodeIcon />,
 }
 
 function getActionIcon(item: ActionItem, copied: boolean) {
@@ -230,7 +308,9 @@ export function ActionsPrimitive({
             type="button"
           >
             {icon ? <span className="llm-actions__icon">{icon}</span> : null}
-            <span className="llm-actions__label">{itemCopied ? '已复制' : item.label}</span>
+            <span className="llm-actions__label">
+              {itemCopied ? '已复制' : item.label}
+            </span>
           </button>
         )
       })}

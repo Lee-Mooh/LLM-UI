@@ -1,8 +1,9 @@
 import { isValidElement, type ReactElement, type ReactNode } from 'react'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 import { CodeHighlighter } from '../code-highlighter/CodeHighlighter'
+import { sanitizeMarkdown } from '../../utils/markdown'
 
 export interface MarkPrimitiveProps {
   content: string
@@ -12,7 +13,7 @@ export interface MarkPrimitiveProps {
 }
 
 type CodeElementProps = {
-  className?: string
+  className?: string | undefined
   children?: ReactNode
 }
 
@@ -24,37 +25,52 @@ function getCodeContent(children: ReactNode) {
   return String(children ?? '').replace(/\n$/, '')
 }
 
+function hasOpenCodeFence(content: string) {
+  return (content.match(/```/g) ?? []).length % 2 !== 0
+}
+
 function isCodeElement(
   node: ReactNode,
 ): node is ReactElement<CodeElementProps> {
   return isValidElement<CodeElementProps>(node)
 }
 
-export function MarkPrimitive({ content, className }: MarkPrimitiveProps) {
+const markdownComponents: Components = {
+  code: ({ children, className }: CodeElementProps) => (
+    <code className={className}>{children}</code>
+  ),
+  img: ({ alt, src, title }) => (
+    <img alt={alt} loading="lazy" src={src} title={title} />
+  ),
+  pre: ({ children }: { children?: ReactNode }) => {
+    if (!isCodeElement(children)) return null
+
+    return (
+      <CodeHighlighter
+        code={getCodeContent(children.props.children)}
+        language={getCodeLanguage(children.props.className)}
+      />
+    )
+  },
+}
+
+export function MarkPrimitive({
+  content,
+  streaming = false,
+  className,
+}: MarkPrimitiveProps) {
+  const hasStreamingCodeFence = streaming && hasOpenCodeFence(content)
+  const parsedContent = hasStreamingCodeFence
+    ? sanitizeMarkdown(content)
+    : content
+
   return (
     <div className={className}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        components={{
-          code: ({ children, className }) => (
-            <code className={className}>{children}</code>
-          ),
-          img: ({ alt, src, title }) => (
-            <img alt={alt} loading="lazy" src={src} title={title} />
-          ),
-          pre: ({ children }) => {
-            if (!isCodeElement(children)) return null
-
-            return (
-              <CodeHighlighter
-                code={getCodeContent(children.props.children)}
-                language={getCodeLanguage(children.props.className)}
-              />
-            )
-          },
-        }}
+        components={markdownComponents}
       >
-        {content}
+        {parsedContent}
       </ReactMarkdown>
     </div>
   )

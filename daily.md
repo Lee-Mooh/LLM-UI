@@ -990,7 +990,11 @@ export interface ThinkPrimitiveProps {
 核心结构：
 
 ```tsx
-<section className={className} data-open={open ? '' : undefined} data-status={status}>
+<section
+  className={className}
+  data-open={open ? '' : undefined}
+  data-status={status}
+>
   <button className="llm-think__header" aria-expanded={open}>
     <span className="llm-think__title">
       <SparkIcon />
@@ -1035,7 +1039,11 @@ export interface NotificationPrimitiveProps {
 核心结构：
 
 ```tsx
-<section className={className} data-type={type} role={type === 'error' ? 'alert' : 'status'}>
+<section
+  className={className}
+  data-type={type}
+  role={type === 'error' ? 'alert' : 'status'}
+>
   <div className="llm-notification__icon" />
   <div className="llm-notification__body">
     <div className="llm-notification__title" />
@@ -1150,19 +1158,33 @@ export interface ConversationItemPrimitiveProps {
 
 ```tsx
 <article className={className} data-active={active ? '' : undefined}>
-  <button className="llm-conversation-item__main" aria-current={active ? 'true' : undefined}>
+  <button
+    className="llm-conversation-item__main"
+    aria-current={active ? 'true' : undefined}
+  >
     <span className="llm-conversation-item__content">
       <span className="llm-conversation-item__header">
-        <span className="llm-conversation-item__title">{conversation.title}</span>
+        <span className="llm-conversation-item__title">
+          {conversation.title}
+        </span>
         <span className="llm-conversation-item__time">{timestamp}</span>
       </span>
     </span>
   </button>
 
   <div className="llm-conversation-item__actions">
-    <button className="llm-conversation-item__status-button" aria-label="取消置顶" />
-    <button className="llm-conversation-item__status-button" aria-label="取消收藏" />
-    <button className="llm-conversation-item__menu-trigger" aria-expanded={menuOpen} />
+    <button
+      className="llm-conversation-item__status-button"
+      aria-label="取消置顶"
+    />
+    <button
+      className="llm-conversation-item__status-button"
+      aria-label="取消收藏"
+    />
+    <button
+      className="llm-conversation-item__menu-trigger"
+      aria-expanded={menuOpen}
+    />
     <div className="llm-conversation-item__menu" role="menu" />
   </div>
 </article>
@@ -1205,10 +1227,19 @@ export interface ConversationListPrimitiveProps {
 <aside className={className} data-collapsed={collapsed ? '' : undefined}>
   <div className="llm-conversation-list__header">
     <div className="llm-conversation-list__toolbar">
-      <button className="llm-conversation-list__icon-button" aria-label="关闭边栏" />
+      <button
+        className="llm-conversation-list__icon-button"
+        aria-label="关闭边栏"
+      />
       <div className="llm-conversation-list__toolbar-actions">
-        <button className="llm-conversation-list__icon-button" aria-label="搜索会话" />
-        <button className="llm-conversation-list__icon-button" aria-label="打开新聊天" />
+        <button
+          className="llm-conversation-list__icon-button"
+          aria-label="搜索会话"
+        />
+        <button
+          className="llm-conversation-list__icon-button"
+          aria-label="打开新聊天"
+        />
       </div>
     </div>
     <label className="llm-conversation-list__search" />
@@ -1237,27 +1268,47 @@ export interface ConversationListPrimitiveProps {
 Conversation 样式集中写在 `src/index.css`，使用 BEM 和 `--llm-*` token：
 
 ```css
-.llm-conversation-list {}
-.llm-conversation-list__header {}
-.llm-conversation-list__toolbar {}
-.llm-conversation-list__toolbar-actions {}
-.llm-conversation-list__icon-button {}
-.llm-conversation-list__search {}
-.llm-conversation-list__body {}
-.llm-conversation-list__items {}
-.llm-conversation-list__empty {}
+.llm-conversation-list {
+}
+.llm-conversation-list__header {
+}
+.llm-conversation-list__toolbar {
+}
+.llm-conversation-list__toolbar-actions {
+}
+.llm-conversation-list__icon-button {
+}
+.llm-conversation-list__search {
+}
+.llm-conversation-list__body {
+}
+.llm-conversation-list__items {
+}
+.llm-conversation-list__empty {
+}
 
-.llm-conversation-item {}
-.llm-conversation-item__main {}
-.llm-conversation-item__content {}
-.llm-conversation-item__header {}
-.llm-conversation-item__title {}
-.llm-conversation-item__time {}
-.llm-conversation-item__actions {}
-.llm-conversation-item__status-button {}
-.llm-conversation-item__menu-trigger {}
-.llm-conversation-item__menu {}
-.llm-conversation-item__menu-item {}
+.llm-conversation-item {
+}
+.llm-conversation-item__main {
+}
+.llm-conversation-item__content {
+}
+.llm-conversation-item__header {
+}
+.llm-conversation-item__title {
+}
+.llm-conversation-item__time {
+}
+.llm-conversation-item__actions {
+}
+.llm-conversation-item__status-button {
+}
+.llm-conversation-item__menu-trigger {
+}
+.llm-conversation-item__menu {
+}
+.llm-conversation-item__menu-item {
+}
 ```
 
 视觉方向：
@@ -1413,17 +1464,27 @@ export interface SenderPrimitiveProps {
 Day 11 样式继续集中写在 `src/index.css`：
 
 ```css
-.llm-actions {}
-.llm-actions__item {}
-.llm-actions__icon {}
-.llm-actions__label {}
+.llm-actions {
+}
+.llm-actions__item {
+}
+.llm-actions__icon {
+}
+.llm-actions__label {
+}
 
-.llm-prompts {}
-.llm-prompts__list {}
-.llm-prompts__item {}
-.llm-prompts__icon {}
-.llm-prompts__item-title {}
-.llm-prompts__empty {}
+.llm-prompts {
+}
+.llm-prompts__list {
+}
+.llm-prompts__item {
+}
+.llm-prompts__icon {
+}
+.llm-prompts__item-title {
+}
+.llm-prompts__empty {
+}
 ```
 
 视觉方向：
@@ -1483,7 +1544,12 @@ Day 11 样式继续集中写在 `src/index.css`：
 ### Thought 组件
 
 ```tsx
-export type ThoughtStatus = 'pending' | 'loading' | 'success' | 'error' | 'abort'
+export type ThoughtStatus =
+  | 'pending'
+  | 'loading'
+  | 'success'
+  | 'error'
+  | 'abort'
 
 export interface ThoughtItem {
   key: string
@@ -1555,6 +1621,239 @@ export interface CitationItem {
 
 ---
 
+## Day 13: 指令级 AI 能力 + 虚拟列表
+
+### 完成内容
+
+- 新增 `src/hooks/useVirtualList.ts`，提供固定高度虚拟滚动能力，不引入额外依赖
+- 新增 `src/components/actions/ActionsPreset.ts`，沉淀 `summary / polish / explain-code` 等 AI 快捷操作预设
+- 为 Actions 补充 AI 操作默认图标，并在 Storybook 中增加 AI 快捷操作与流式总结示例
+- 为 Bubble 增加 `actions` 插槽，支持在消息气泡下方组合快捷操作栏
+- 为 ConversationList 增加虚拟滚动模式，支持 1000+ 会话列表的高性能滚动
+- 新增 MessageList 组件，默认复用 Bubble 渲染消息，并支持自定义 `renderMessage` 与虚拟滚动
+- 弱化 ConversationList / MessageList 滚动条视觉，使用透明轨道和低对比度细滚动条
+- 清理 Storybook 示例中的实现说明式文案，保持示例内容更接近真实对话场景
+
+### useVirtualList hook
+
+```ts
+export interface UseVirtualListOptions<T> {
+  items: T[]
+  itemHeight: number
+  overscan?: number
+  enabled?: boolean
+  getItemKey?: (item: T, index: number) => string | number
+}
+```
+
+关键设计：
+
+- 使用 `ResizeObserver` 监听滚动容器高度，并通过 `scrollTop` 计算可见范围
+- `enabled` 为 false 时返回完整列表，方便组件保留默认非虚拟模式
+- 使用 `overscan` 预渲染上下缓冲区，减少快速滚动时的空白感
+- 固定高度方案优先保证 Day 13 目标交付，动态测量留到后续扩展
+
+### AI 快捷操作
+
+```ts
+export type ActionPresetKey =
+  | 'copy'
+  | 'regenerate'
+  | 'correct'
+  | 'summary'
+  | 'polish'
+  | 'explain-code'
+```
+
+关键设计：
+
+- `ActionsPreset.ts` 只提供预设配置和 `createPresetActions()`，不绑定具体模型调用
+- `Actions` 继续保持通用 toolbar 能力，业务逻辑通过 `onAction` 外部组合
+- Storybook 的流式总结示例使用 `useStream + mockStream` 展示组合方式
+- 将预设常量从组件文件拆出，避免触发 React Fast Refresh 的 `only-export-components` 规则
+
+### Bubble actions 插槽
+
+```tsx
+<Bubble
+  role="assistant"
+  content="我建议先确认用户最常点的三个操作，再把它们放到消息下方。"
+  actions={<Actions items={createPresetActions(['summary', 'polish'])} />}
+/>
+```
+
+关键设计：
+
+- `actions?: ReactNode` 作为插槽，比内置固定 action 配置更灵活
+- 对齐方式跟随 `role`：user 右对齐、assistant 左对齐、system 居中
+- Primitive 层不再重复注入 `llm-bubble` 根类，保持 Styled wrapper 负责根样式类
+
+### 虚拟列表组件覆盖
+
+ConversationList 新增：
+
+```ts
+virtualized?: boolean
+itemHeight?: number
+overscan?: number
+```
+
+MessageList 新增：
+
+```ts
+export interface MessageRecord {
+  id: string
+  role: LLMRole
+  content?: string
+  avatar?: ReactNode
+  timestamp?: Date | string
+  status?: messageStatus
+  loading?: boolean
+  actions?: ReactNode
+}
+```
+
+关键设计：
+
+- ConversationList 默认非虚拟，开启 `virtualized` 后才使用绝对定位列表项
+- MessageList 默认用 Bubble 渲染消息，也支持 `renderMessage(message, index)` 自定义复杂内容
+- 两个列表都通过固定 `itemHeight` 估算总高度，避免引入 `react-window` 等运行时依赖
+- 虚拟模式下为根节点增加 `data-virtualized`，由 CSS 控制固定视口和定位布局
+
+### Storybook 覆盖
+
+新增 / 更新示例：
+
+- `Actions.AIQuickActions`
+- `Actions.StreamingSummary`
+- `Bubble.WithAIQuickActions`
+- `ConversationList.VirtualizedLargeDataset`
+- `MessageList.Basic`
+- `MessageList.WithBubbleActions`
+- `MessageList.VirtualizedLargeDataset`
+- `MessageList.CustomRenderMessage`
+
+### 验证结果
+
+- `pnpm lint` ✅
+- `pnpm build` ✅
+- Storybook + Playwright 浏览器检查 ✅
+  - Actions 流式总结可触发并输出
+  - Bubble actions 插槽渲染正常
+  - ConversationList 1200 条数据虚拟滚动仅渲染可见项
+  - MessageList 1200 条消息虚拟滚动仅渲染可见项
+
+### 遇到的问题
+
+- `react-refresh/only-export-components` 不允许组件文件导出非组件常量 → 将 action 预设移动到 `ActionsPreset.ts`
+- `exactOptionalPropertyTypes` 下不能把可选 props 显式传为 `undefined` → MessageList 默认渲染 Bubble 时使用条件展开
+- 初版虚拟列表因滚动容器高度不固定导致仍渲染全部数据 → 为虚拟模式补充固定视口与 `data-virtualized` 样式
+- Storybook 示例里出现实现说明式文案，影响真实对话感 → 移除类似系统注释的消息内容
+- 默认滚动条视觉过强 → 调整为细滚动条、透明轨道和低对比度 thumb
+
+---
+
+## Day 14: 场景化 Demo + Storybook 文档完善
+
+### 完成内容
+
+- 新增完整 AI 对话场景 Demo，组合 `ConfigProvider`、`ConversationList`、`MessageList`、`Bubble`、`Mark`、`Actions`、`Prompts`、`Sender`、`Think`、`Thought`、`Citation`、`CodeHighlighter` 和 `NotificationStack`
+- Demo 支持会话选择、新建、删除、置顶、收藏、边栏折叠、快捷提示词、受控输入、模型切换、前缀动作、消息操作和通知反馈
+- 使用 `useStream + mockStream` 模拟 AI 流式回复，并在 token 更新时自动滚动到最新内容
+- 将 Demo 视觉重构为 ChatGPT / shadcn 风格的全高 chat shell：左侧全高侧边栏、右侧消息线程、底部 prompt 胶囊和 Sender
+- 移除 Demo 顶部介绍区域和多余卡片边界，保留轻量顶部工具栏和单个太阳 / 月亮 SVG 主题按钮
+- 修复 Storybook 全局主题与 Demo 局部主题冲突，深浅色模式可从 Storybook toolbar 初始化，也可通过 Demo 顶部按钮切换
+- 点击 prompt 后自动填充 Sender，并将焦点移动到输入框
+- 压缩 prompt、notification、Think、Thought、Citation 和 CodeHighlighter 在 Demo 内的尺寸，让各组件在真实 chat 场景中比例更协调
+- 修复 `Mark` Streaming story 中代码块流式输出抖动问题，保持 Markdown 结构、renderer 引用和 Shiki 初始布局稳定
+
+### Storybook 覆盖
+
+- `AIConversationDemo.Default` 覆盖主题切换、边栏折叠、prompt 填充与自动聚焦、发送消息和流式回复出现
+- `ConfigProvider.Default` 覆盖主题配置展示，并补充 `useStream` 开始、累积和取消路径
+- `Bubble` 覆盖 assistant 渲染、错误状态、加载状态和消息 actions 插槽
+- `Sender.InteractiveSend` 覆盖受控输入和发送回调
+- `Mark.Basic` 覆盖标题、列表、表格和 fenced code block 渲染
+
+### 技术决策
+
+- Demo 作为 `src/components/demo/AIConversationDemo.tsx` 的 Storybook 场景示例保留，不导出为公共组件
+- 继续使用 mock stream，不接入真实 API，避免把密钥或代理方案混入视觉与文档收尾任务
+- 主题仍基于 `data-theme` 属性；Demo 根节点同步 `data-theme` / `data-theme-mode`，避免被 Storybook 全局主题覆盖
+- Prompt 与 Sender 的联动放在 Demo 组合层完成，基础组件仍保持通用性
+
+### 验证结果
+
+- `pnpm lint` ✅
+- `pnpm build` ✅
+- `pnpm test:storybook` ✅
+
+---
+
+## Day 15: 打包发布 + Storybook 部署准备
+
+### 完成内容
+
+- 完善 `package.json` npm 发布元数据，移除 `private: true`，补充 `description`、`keywords`、`license` 和 `publishConfig.access`
+- 保留现有包入口与导出配置：`main`、`module`、`types`、`exports` 和 `files: ['dist']`
+- 重写 `README.md`，替换 Vite 模板内容，补充安装方式、样式导入、基础用法、组件列表、hooks / utils 和本地开发命令
+- 新增 `vercel.json`，将 Vercel 构建配置指向 `pnpm build-storybook` 和 `storybook-static`
+- 验证 `tsup.config.ts` 继续输出 ESM、CJS、DTS，并 external `react`、`react-dom`、`react/jsx-runtime`
+- 验证 `vite.styles.config.ts` 继续输出 `dist/style.css`，并通过 `emptyOutDir: false` 保留库构建产物
+
+### 发布边界
+
+- 本次只完成本地发布准备和 dry-run 验证
+- 未执行真实 `npm publish`
+- 未执行真实 `vercel deploy`
+- `storybook-static` 仅作为本地构建产物，继续由 `.gitignore` 排除
+
+### 验证结果
+
+- `pnpm lint` ✅
+- `pnpm build` ✅
+- `pnpm test:storybook` ✅
+- `pnpm build-storybook` ✅
+- `npm pack --dry-run` ✅
+  - tarball 包含 README、package.json、ESM、CJS、类型声明、CSS 和 sourcemap
+  - 包大小约 105.3 kB，解包后约 570.9 kB，共 10 个文件
+- `npm publish --dry-run --access public` ✅
+  - dry-run 显示将以 public access 发布 `@llm-ui/react@0.1.0`
+  - 未执行真实发布
+
+---
+
+## Vercel Demo 真实 AI 接入
+
+### 完成内容
+
+- 新增 `api/chat.ts` Vercel Serverless Function，作为浏览器 Demo 与 OpenAI-compatible 模型服务之间的同源代理
+- 服务端只从 `DEEPSEEK_API_KEY` 环境变量读取密钥，可选使用 `DEEPSEEK_MODEL` 配置模型，默认 `deepseek-chat`
+- 代理接口将上游 SSE 响应转换为纯文本 stream，前端无需感知供应商协议细节
+- 新增 `src/components/demo/deepseekStream.ts`，Demo 只调用 `/api/chat` 并复用 `streamToGenerator`
+- 改造 `AIConversationDemo`：线上优先调用真实 AI，接口不可用或未配置时自动回退到本地 mock stream
+- 为 `AIConversationDemo` 增加 `forceMock`，Storybook play 测试强制使用 mock，避免 CI 依赖真实网络或服务端环境变量
+- 增加服务端 API lint override，并为 `api/chat.ts` 配置 Vercel 函数最大执行时长
+- README 补充真实 AI Demo 接入说明，强调 key 只能配置在 Vercel 服务端环境变量中
+
+### 安全边界
+
+- 未将真实 API key 写入任何源码、README、Storybook、日报或构建配置
+- 未使用 `VITE_*` 暴露密钥
+- 未执行真实 Vercel 部署
+- 建议部署前轮换已经在对话中出现过的 key
+
+### 验证结果
+
+- `pnpm lint` ✅
+- `pnpm build` ✅
+- `pnpm test:storybook` ✅
+- `pnpm build-storybook` ✅
+- `storybook-static` 中未发现 `DEEPSEEK_API_KEY` 或 key 形态字符串 ✅
+- `dist` 中未发现 `DEEPSEEK_API_KEY`、DeepSeek base URL 或 key 形态字符串 ✅
+
+---
+
 ## 累计产出
 
 ### 目录结构
@@ -1582,9 +1881,10 @@ src/
 │   │   ├── Sender.tsx
 │   │   ├── SenderPrimitive.tsx
 │   │   └── Sender.stories.tsx
-│   ├── actions/                  # Day 11 新增
+│   ├── actions/                  # Day 11 新增，Day 13 补 AI 预设
 │   │   ├── Actions.tsx
 │   │   ├── ActionsPrimitive.tsx
+│   │   ├── ActionsPreset.ts
 │   │   └── Actions.stories.tsx
 │   ├── prompts/                  # Day 11 新增
 │   │   ├── Prompts.tsx
@@ -1598,17 +1898,22 @@ src/
 │   │   ├── Notification.tsx
 │   │   ├── NotificationPrimitive.tsx
 │   │   └── Notification.stories.tsx
-│   └── conversation/             # Day 10 新增
-│       ├── ConversationItem.tsx
-│       ├── ConversationItemPrimitive.tsx
-│       ├── ConversationList.tsx
-│       ├── ConversationListPrimitive.tsx
-│       └── ConversationList.stories.tsx
+│   ├── conversation/             # Day 10 新增，Day 13 支持虚拟滚动
+│   │   ├── ConversationItem.tsx
+│   │   ├── ConversationItemPrimitive.tsx
+│   │   ├── ConversationList.tsx
+│   │   ├── ConversationListPrimitive.tsx
+│   │   └── ConversationList.stories.tsx
+│   └── message-list/             # Day 13 新增
+│       ├── MessageList.tsx
+│       ├── MessageListPrimitive.tsx
+│       └── MessageList.stories.tsx
 ├── hooks/
 │   ├── useConfig.ts
 │   ├── useLocale.ts
 │   ├── useTheme.ts
-│   └── useStream.ts          # Day 4 新增
+│   ├── useStream.ts          # Day 4 新增
+│   └── useVirtualList.ts     # Day 13 新增
 ├── locale/
 │   ├── type.ts
 │   ├── zh-CN.ts
@@ -1639,3 +1944,5 @@ src/
 8. **输入交互**：Sender 负责输入、发送、快捷操作、模型切换和菜单交互
 9. **会话侧边栏**：ConversationList 只负责列表、搜索、折叠和事件抛出，业务数据新增由外部控制
 10. **提示词联动**：Prompts 只负责展示快捷入口并抛出 prompt 数据，具体填充 Sender 等业务联动由外部组合完成
+11. **AI 快捷操作**：Actions 提供预设 UI，不直接绑定模型调用，具体 AI 能力由外部通过 `onAction` 组合
+12. **虚拟滚动**：ConversationList 和 MessageList 共享 `useVirtualList`，默认不启用，按需通过 `virtualized` 开启

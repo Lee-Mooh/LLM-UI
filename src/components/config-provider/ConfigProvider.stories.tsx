@@ -1,3 +1,4 @@
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { ConfigProvider } from './ConfigProvider'
 import { useConfig } from '../../hooks/useConfig'
@@ -195,6 +196,14 @@ const meta: Meta<typeof ThemeDemo> = {
   title: 'Components/ConfigProvider',
   component: ThemeDemo,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'ConfigProvider 为组件库提供主题、语言包、AI 配置和组件默认参数，是应用接入 LLM-UI 时的全局上下文入口。',
+      },
+    },
+  },
 }
 
 export default meta
@@ -202,4 +211,25 @@ type Story = StoryObj<typeof ThemeDemo>
 
 export const Default: Story = {
   render: () => <ThemeDemo />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '展示当前主题配置、语言包和核心颜色令牌，并包含一个流式输出组合示例。',
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    await expect(canvas.getByText('当前配置')).toBeInTheDocument()
+    await expect(canvas.getByText(/主题模式：/)).toBeInTheDocument()
+    await expect(canvas.getByText('颜色令牌')).toBeInTheDocument()
+
+    await userEvent.click(canvas.getByRole('button', { name: 'Start' }))
+    await waitFor(() => expect(canvas.getByText(/你好/)).toBeInTheDocument())
+    await expect(canvas.getByText('输出中...')).toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button', { name: 'Cancel' }))
+    await expect(canvas.queryByText('输出中...')).not.toBeInTheDocument()
+  },
 }

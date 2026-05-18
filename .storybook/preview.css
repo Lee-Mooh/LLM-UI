@@ -1,0 +1,93 @@
+body,
+.docs-story,
+.sb-show-main,
+.sbdocs,
+.sbdocs-wrapper,
+.sbdocs-content {
+  color: var(--llm-color-text) !important;
+  background: var(--llm-color-bg) !important;
+}
+
+.sbdocs-title,
+.sbdocs-subtitle,
+.sbdocs-h1,
+.sbdocs-h2,
+.sbdocs-h3,
+.sbdocs-h4,
+.sbdocs-h5,
+.sbdocs-h6,
+.sbdocs-p,
+.sbdocs-li,
+.sbdocs-td,
+.sbdocs-th,
+.sbdocs-content h1,
+.sbdocs-content h2,
+.sbdocs-content h3,
+.sbdocs-content h4,
+.sbdocs-content h5,
+.sbdocs-content h6 {
+  color: var(--llm-color-text) !important;
+}
+
+.sbdocs-a {
+  color: var(--llm-color-primary);
+}
+
+.sbdocs-blockquote {
+  color: var(--llm-color-text-muted);
+  border-left-color: var(--llm-color-border);
+}
+
+.sbdocs-table,
+.sbdocs-table th,
+.sbdocs-table td {
+  border-color: var(--llm-color-border);
+}
+
+.sbdocs-table th {
+  background: var(--llm-color-muted);
+}
+
+.sbdocs-preview,
+.sbdocs-preview > div,
+.docs-story > div:first-child,
+.docblock-argstable,
+.docblock-source {
+  color: var(--llm-color-text) !important;
+  border-color: var(--llm-color-border) !important;
+  background: var(--llm-color-surface) !important;
+}
+
+.docblock-argstable-head th,
+.docblock-argstable-body td {
+  color: var(--llm-color-text) !important;
+  border-color: var(--llm-color-border) !important;
+  background: var(--llm-color-surface) !important;
+}
+
+.docblock-argstable-body td span,
+.docblock-argstable-body td div,
+.docblock-argstable-body td p {
+  color: inherit;
+}
+
+.sbdocs-preview button,
+.docblock-argstable button {
+  color: var(--llm-color-text-muted) !important;
+  border-color: var(--llm-color-border) !important;
+  background: transparent !important;
+}
+
+.sbdocs-preview button:hover,
+.docblock-argstable button:hover {
+  color: var(--llm-color-text) !important;
+  background: var(--llm-color-muted) !important;
+}
+
+.docblock-argstable textarea,
+.docblock-argstable input,
+.docblock-argstable select {
+  color: var(--llm-color-text) !important;
+  border-color: var(--llm-color-border) !important;
+  background: var(--llm-color-bg) !important;
+}

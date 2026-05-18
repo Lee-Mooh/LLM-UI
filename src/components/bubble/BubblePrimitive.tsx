@@ -1,6 +1,5 @@
 import { type CSSProperties, type ReactNode } from 'react'
 import { type LLMRole, type messageStatus } from '../../types/common'
-import cn from '../../utils/cn'
 
 export interface BubblePrimitiveProps {
   /** 消息角色，决定气泡的语义与布局方向 */
@@ -17,6 +16,8 @@ export interface BubblePrimitiveProps {
   loading?: boolean
   /** 自定义内容插槽，优先级高于 content */
   children?: ReactNode
+  /** 消息下方操作区插槽 */
+  actions?: ReactNode
   /** 最外层元素类名，供 Styled 层或使用者覆盖 */
   className?: string
   /** 最外层元素内联样式 */
@@ -48,18 +49,18 @@ export function BubblePrimitive({
   status,
   loading,
   children,
+  actions,
   className,
   style,
 }: BubblePrimitiveProps) {
-  const rootClassName = cn('llm-bubble', className)
-
   return (
     <div
-      className={rootClassName}
+      className={className}
       style={style}
       data-role={role}
       data-status={status}
       data-loading={loading}
+      data-has-actions={actions ? '' : undefined}
     >
       {avatar && (
         <div className="llm-bubble__avatar" data-slot="bubble-avatar">
@@ -91,6 +92,11 @@ export function BubblePrimitive({
             )}
           </div>
         )}
+        {actions ? (
+          <div className="llm-bubble__actions" data-slot="bubble-actions">
+            {actions}
+          </div>
+        ) : null}
       </div>
     </div>
   )

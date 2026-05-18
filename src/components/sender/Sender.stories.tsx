@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { expect, userEvent, within } from 'storybook/test'
 import { type Meta, type StoryObj } from '@storybook/react-vite'
 
 import { Sender } from './Sender'
@@ -6,6 +8,14 @@ const meta: Meta<typeof Sender> = {
   title: 'Components/Sender',
   component: Sender,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Sender 是 AI 对话输入框，支持受控输入、Enter 发送、加载中取消、模型切换和快捷操作插槽。',
+      },
+    },
+  },
   decorators: [
     (Story) => (
       <div style={{ minHeight: 360, paddingTop: 120 }}>
@@ -26,10 +36,55 @@ const modelOptions = [
   { value: 'deepseek-r1', label: 'DeepSeek R1' },
 ]
 
+function InteractiveSenderDemo() {
+  const [message, setMessage] = useState('')
+  const [sentMessage, setSentMessage] = useState('')
+
+  return (
+    <div style={{ display: 'grid', gap: 16 }}>
+      <Sender
+        onChange={setMessage}
+        onSend={setSentMessage}
+        placeholder="输入要发送的消息..."
+        value={message}
+      />
+      {sentMessage ? <p>已发送：{sentMessage}</p> : null}
+    </div>
+  )
+}
+
 export const Basic: Story = {
   args: {
     placeholder: '请输入消息...',
     onSend: (message) => console.log('send:', message),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: '基础输入框示例，输入内容后可通过发送按钮或 Enter 触发 onSend。',
+      },
+    },
+  },
+}
+
+export const InteractiveSend: Story = {
+  render: () => <InteractiveSenderDemo />,
+  parameters: {
+    docs: {
+      description: {
+        story: '受控输入示例，发送后由外部状态回显已发送内容。',
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const textarea = canvas.getByPlaceholderText('输入要发送的消息...')
+
+    await userEvent.type(textarea, '帮我整理今天的验收重点')
+    await userEvent.click(canvas.getByRole('button', { name: '发送消息' }))
+    await expect(
+      canvas.getByText('已发送：帮我整理今天的验收重点'),
+    ).toBeInTheDocument()
   },
 }
 

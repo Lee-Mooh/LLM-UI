@@ -342,7 +342,7 @@ async generator / ReadableStream
   - 文献溯源信息展示
 - Stories: 思维链流程、引用卡片、hover 预览
 
-**Day 13: 指令级 AI 能力 + 虚拟列表**
+**Day 13: 指令级 AI 能力 + 虚拟列表** ✅
 
 - 在 Bubble/Actions 中集成轻量 AI 快捷操作
   - 一键总结（调用 useStream）
@@ -359,10 +359,10 @@ async generator / ReadableStream
 
 ### Phase 5: 场景化 Demo + 测试 + 打包 (Day 14-15)
 
-**Day 14: 场景化 Demo + Storybook 文档完善**
+**Day 14: 场景化 Demo + Storybook 文档完善** ✅
 
 - 搭建完整 AI 对话 Demo 页面
-  - 集成所有组件：Conversation 侧边栏 + Bubble 消息列表 + Sender 输入框 + Prompts 快捷入口
+  - 集成所有组件：ConfigProvider、ConversationList、MessageList、Bubble、Mark、Actions、Prompts、Sender、Think、Thought、Citation、CodeHighlighter、NotificationStack
   - Mock 流式 AI 响应
   - 主题切换展示
 - 完善每个组件的 Storybook 文档
@@ -377,12 +377,12 @@ async generator / ReadableStream
   - Sender 发送回调测试
   - Mark Markdown 渲染测试
 
-**Day 15: 打包发布 + 部署**
+**Day 15: 打包发布 + 部署** ✅
 
 - tsup 打包配置验证
   - ESM + CJS 双格式输出
-  - TypeScript 声明文件 (.d.ts)
-  - CSS 提取（Tailwind purge 配置）
+  - TypeScript 声明文件 (.d.ts / .d.cts)
+  - CSS 提取为 `dist/style.css`
   - 外部化 react/react-dom (peerDependencies)
 - package.json 配置
   - name: `@llm-ui/react`
@@ -390,9 +390,10 @@ async generator / ReadableStream
   - peerDependencies: react, react-dom
   - exports 字段 (条件导出)
   - files 字段（只发布 dist）
+  - npm 发布元数据与 `publishConfig.access`
 - Storybook 构建为静态站点
-- 部署 Storybook 到 Vercel
-- 验证：`npm pack` 检查产物，`npm publish --dry-run` 验证发布
+- 增加 Vercel 静态部署配置（未执行真实部署）
+- 验证：`npm pack --dry-run` 检查产物，`npm publish --dry-run --access public` 验证发布流程
 
 ---
 

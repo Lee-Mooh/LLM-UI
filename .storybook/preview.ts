@@ -1,5 +1,6 @@
 import type { Preview, StoryContext } from '@storybook/react-vite'
 import '../src/index.css'
+import './preview.css'
 
 const withTheme = (Story: () => React.JSX.Element, context: StoryContext) => {
   const theme = context.globals.theme ?? 'light'

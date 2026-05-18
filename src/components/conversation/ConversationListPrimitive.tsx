@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 
 import { ConversationItem } from './ConversationItem'
 import { type ConversationRecord } from './ConversationItemPrimitive'
+import { useVirtualList } from '../../hooks/useVirtualList'
 
 export interface ConversationListPrimitiveProps {
   conversations: ConversationRecord[]
@@ -17,6 +18,9 @@ export interface ConversationListPrimitiveProps {
   searchPlaceholder?: string
   title?: ReactNode
   emptyText?: ReactNode
+  virtualized?: boolean
+  itemHeight?: number
+  overscan?: number
   className?: string
   style?: CSSProperties
 }
@@ -60,6 +64,9 @@ export function ConversationListPrimitive({
   searchPlaceholder = '搜索会话...',
   title,
   emptyText,
+  virtualized = false,
+  itemHeight = 56,
+  overscan = 6,
   className,
   style,
 }: ConversationListPrimitiveProps) {
@@ -70,7 +77,9 @@ export function ConversationListPrimitive({
   const visibleConversations = useMemo(() => {
     const filteredConversations = keyword
       ? conversations.filter((conversation) => {
-          const titleMatched = conversation.title.toLowerCase().includes(keyword)
+          const titleMatched = conversation.title
+            .toLowerCase()
+            .includes(keyword)
           const messageMatched =
             conversation.lastMessage?.toLowerCase().includes(keyword) ?? false
 
@@ -90,10 +99,23 @@ export function ConversationListPrimitive({
       .map(({ conversation }) => conversation)
   }, [conversations, keyword])
 
-  const resolvedEmptyText = emptyText ?? (keyword ? '未找到相关会话' : '暂无会话')
+  const resolvedEmptyText =
+    emptyText ?? (keyword ? '未找到相关会话' : '暂无会话')
+  const { containerRef, totalSize, virtualItems } = useVirtualList({
+    items: visibleConversations,
+    itemHeight,
+    overscan,
+    enabled: virtualized,
+    getItemKey: (conversation) => conversation.id,
+  })
 
   return (
-    <aside className={className} data-collapsed={collapsed ? '' : undefined} style={style}>
+    <aside
+      className={className}
+      data-collapsed={collapsed ? '' : undefined}
+      data-virtualized={virtualized ? '' : undefined}
+      style={style}
+    >
       <div className="llm-conversation-list__header">
         <div className="llm-conversation-list__toolbar">
           <button
@@ -126,10 +148,14 @@ export function ConversationListPrimitive({
             </button>
           </div>
         </div>
-        {title ? <div className="llm-conversation-list__title">{title}</div> : null}
+        {title ? (
+          <div className="llm-conversation-list__title">{title}</div>
+        ) : null}
         {searchable && searchOpen && !collapsed ? (
           <label className="llm-conversation-list__search">
-            <span className="llm-conversation-list__search-label">搜索会话</span>
+            <span className="llm-conversation-list__search-label">
+              搜索会话
+            </span>
             <input
               aria-label="搜索会话"
               className="llm-conversation-list__search-input"
@@ -143,29 +169,54 @@ export function ConversationListPrimitive({
       </div>
 
       {!collapsed ? (
-        <div className="llm-conversation-list__body">
-            {visibleConversations.length > 0 ? (
-              <div className="llm-conversation-list__items" role="list">
-                {visibleConversations.map((conversation) => (
-                  <div
-                    className="llm-conversation-list__item"
-                    key={conversation.id}
-                    role="listitem"
-                  >
-                    <ConversationItem
-                      active={conversation.id === activeId}
-                      conversation={conversation}
-                      {...(onSelect && { onSelect })}
-                      {...(onDelete && { onDelete })}
-                      {...(onFavorite && { onFavorite })}
-                      {...(onPin && { onPin })}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="llm-conversation-list__empty">{resolvedEmptyText}</div>
-            )}
+        <div className="llm-conversation-list__body" ref={containerRef}>
+          {visibleConversations.length > 0 ? (
+            <div
+              className="llm-conversation-list__items"
+              data-virtualized={virtualized ? '' : undefined}
+              role="list"
+              style={virtualized ? { height: totalSize } : undefined}
+            >
+              {(virtualized
+                ? virtualItems
+                : visibleConversations.map((conversation, index) => ({
+                    item: conversation,
+                    index,
+                    key: conversation.id,
+                    start: index * itemHeight,
+                    size: itemHeight,
+                  }))
+              ).map((virtualItem) => (
+                <div
+                  className="llm-conversation-list__item"
+                  data-virtualized={virtualized ? '' : undefined}
+                  key={virtualItem.key}
+                  role="listitem"
+                  style={
+                    virtualized
+                      ? {
+                          height: virtualItem.size,
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }
+                      : undefined
+                  }
+                >
+                  <ConversationItem
+                    active={virtualItem.item.id === activeId}
+                    conversation={virtualItem.item}
+                    {...(onSelect && { onSelect })}
+                    {...(onDelete && { onDelete })}
+                    {...(onFavorite && { onFavorite })}
+                    {...(onPin && { onPin })}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="llm-conversation-list__empty">
+              {resolvedEmptyText}
+            </div>
+          )}
         </div>
       ) : null}
     </aside>

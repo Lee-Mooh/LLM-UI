@@ -43,12 +43,17 @@ export type {
 } from './components/notification/NotificationPrimitive'
 
 export { Actions } from './components/actions/Actions'
+export {
+  actionPresets,
+  createPresetActions,
+} from './components/actions/ActionsPreset'
 export { ActionsPrimitive } from './components/actions/ActionsPrimitive'
 export type {
   ActionsProps,
   ActionItem,
   ActionVariant,
 } from './components/actions/Actions'
+export type { ActionPresetKey } from './components/actions/ActionsPreset'
 export type { ActionsPrimitiveProps } from './components/actions/ActionsPrimitive'
 
 export { Prompts } from './components/prompts/Prompts'
@@ -68,6 +73,14 @@ export { ConversationList } from './components/conversation/ConversationList'
 export { ConversationListPrimitive } from './components/conversation/ConversationListPrimitive'
 export type { ConversationListProps } from './components/conversation/ConversationList'
 export type { ConversationListPrimitiveProps } from './components/conversation/ConversationListPrimitive'
+
+export { MessageList } from './components/message-list/MessageList'
+export { MessageListPrimitive } from './components/message-list/MessageListPrimitive'
+export type {
+  MessageListProps,
+  MessageRecord,
+} from './components/message-list/MessageList'
+export type { MessageListPrimitiveProps } from './components/message-list/MessageListPrimitive'
 
 export { Thought } from './components/thought/Thought'
 export { ThoughtPrimitive } from './components/thought/ThoughtPrimitive'
@@ -92,3 +105,34 @@ export type {
   CitationPrimitiveProps,
   CitationInlinePrimitiveProps,
 } from './components/citation/CitationPrimitive'
+
+export { ConfigProvider } from './components/config-provider/ConfigProvider'
+export type {
+  ComponentDefaultProps,
+  ConfigContextValue,
+  ConfigProviderProps,
+} from './types/config'
+
+export { useConfig } from './hooks/useConfig'
+export { useLocale } from './hooks/useLocale'
+export { useTheme } from './hooks/useTheme'
+export { useStream } from './hooks/useStream'
+export { useVirtualList } from './hooks/useVirtualList'
+export type {
+  UseVirtualListOptions,
+  UseVirtualListReturn,
+  VirtualListAlign,
+  VirtualListItem,
+  VirtualListKey,
+} from './hooks/useVirtualList'
+
+export {
+  generatorToStream,
+  mockStream,
+  streamToGenerator,
+} from './utils/stream'
+export { sanitizeMarkdown } from './utils/markdown'
+
+export { default as zhCN } from './locale/zh-CN'
+export { default as enUS } from './locale/en-US'
+export type { Locale } from './locale/type'

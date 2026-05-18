@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { type Meta, type StoryObj } from '@storybook/react-vite'
 
-import { ConversationList, type ConversationListProps } from './ConversationList'
+import {
+  ConversationList,
+  type ConversationListProps,
+} from './ConversationList'
 import { type ConversationRecord } from './ConversationItem'
 
 const meta: Meta<typeof ConversationList> = {
@@ -35,7 +38,8 @@ function ConversationListStory({
 }: ConversationListProps) {
   const [collapsed, setCollapsed] = useState(args.collapsed ?? false)
   const [currentActiveId, setCurrentActiveId] = useState(activeId)
-  const [currentConversations, setCurrentConversations] = useState(conversations)
+  const [currentConversations, setCurrentConversations] =
+    useState(conversations)
 
   const handleCollapsedChange = (nextCollapsed: boolean) => {
     setCollapsed(nextCollapsed)
@@ -65,7 +69,9 @@ function ConversationListStory({
 
   const handleDelete = (id: string) => {
     setCurrentConversations((items) => items.filter((item) => item.id !== id))
-    setCurrentActiveId((currentId) => (currentId === id ? undefined : currentId))
+    setCurrentActiveId((currentId) =>
+      currentId === id ? undefined : currentId,
+    )
     onDelete?.(id)
   }
 
@@ -102,6 +108,25 @@ function ConversationListStory({
     />
   )
 }
+
+const longConversations: ConversationRecord[] = Array.from(
+  { length: 1200 },
+  (_, index) => {
+    const sequence = index + 1
+
+    return {
+      id: `conversation-${sequence}`,
+      title: `长会话记录 ${sequence}`,
+      lastMessage:
+        sequence % 3 === 0
+          ? '我整理了几个可继续追问的方向。'
+          : '我们可以先从最关键的场景开始。',
+      timestamp: `${String(Math.floor(index / 60)).padStart(2, '0')}:${String(index % 60).padStart(2, '0')}`,
+      pinned: sequence <= 3,
+      favorite: sequence % 17 === 0,
+    }
+  },
+)
 
 const conversations: ConversationRecord[] = [
   {
@@ -180,5 +205,18 @@ export const Empty: Story = {
   args: {
     conversations: [],
     searchable: true,
+  },
+}
+
+export const VirtualizedLargeDataset: Story = {
+  args: {
+    activeId: 'conversation-1',
+    conversations: longConversations,
+    searchable: true,
+    title: '1200 条会话',
+    virtualized: true,
+    itemHeight: 56,
+    overscan: 8,
+    onSelect: (id) => console.log('select virtual:', id),
   },
 }

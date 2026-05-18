@@ -23,12 +23,19 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
 
-    await userEvent.click(
+    await waitFor(() =>
+      expect(canvasElement.querySelector('.llm-demo-chat')).toBeInTheDocument(),
+    )
+
+    const themeButton = await waitFor(() =>
       canvas.getByRole('button', { name: '切换到深色主题' }),
     )
-    await expect(
-      canvas.getByRole('button', { name: '切换到浅色主题' }),
-    ).toBeInTheDocument()
+    await userEvent.click(themeButton)
+    await waitFor(() =>
+      expect(
+        canvas.getByRole('button', { name: '切换到浅色主题' }),
+      ).toBeInTheDocument(),
+    )
     await expect(canvasElement.querySelector('.llm-demo-chat')).toHaveAttribute(
       'data-theme-mode',
       'dark',

@@ -27,7 +27,10 @@ export { ThinkPrimitive } from './components/think/ThinkPrimitive'
 export type { ThinkProps } from './components/think/Think'
 export type { ThinkPrimitiveProps } from './components/think/ThinkPrimitive'
 
-export { Notification, NotificationStack } from './components/notification/Notification'
+export {
+  Notification,
+  NotificationStack,
+} from './components/notification/Notification'
 export { NotificationPrimitive } from './components/notification/NotificationPrimitive'
 export type {
   NotificationItem,
@@ -41,7 +44,11 @@ export type {
 
 export { Actions } from './components/actions/Actions'
 export { ActionsPrimitive } from './components/actions/ActionsPrimitive'
-export type { ActionsProps, ActionItem, ActionVariant } from './components/actions/Actions'
+export type {
+  ActionsProps,
+  ActionItem,
+  ActionVariant,
+} from './components/actions/Actions'
 export type { ActionsPrimitiveProps } from './components/actions/ActionsPrimitive'
 
 export { Prompts } from './components/prompts/Prompts'
@@ -61,3 +68,27 @@ export { ConversationList } from './components/conversation/ConversationList'
 export { ConversationListPrimitive } from './components/conversation/ConversationListPrimitive'
 export type { ConversationListProps } from './components/conversation/ConversationList'
 export type { ConversationListPrimitiveProps } from './components/conversation/ConversationListPrimitive'
+
+export { Thought } from './components/thought/Thought'
+export { ThoughtPrimitive } from './components/thought/ThoughtPrimitive'
+export type {
+  ThoughtProps,
+  ThoughtItem,
+  ThoughtStatus,
+} from './components/thought/Thought'
+export type { ThoughtPrimitiveProps } from './components/thought/ThoughtPrimitive'
+
+export { Citation } from './components/citation/Citation'
+export {
+  CitationPrimitive,
+  CitationInlinePrimitive,
+} from './components/citation/CitationPrimitive'
+export type {
+  CitationProps,
+  CitationInlineProps,
+  CitationItem,
+} from './components/citation/Citation'
+export type {
+  CitationPrimitiveProps,
+  CitationInlinePrimitiveProps,
+} from './components/citation/CitationPrimitive'

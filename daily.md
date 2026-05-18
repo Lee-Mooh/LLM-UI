@@ -1465,6 +1465,96 @@ Day 11 样式继续集中写在 `src/index.css`：
 
 ---
 
+## Day 12: Thought 思维链 + Citation 引用溯源
+
+### 完成内容
+
+- 创建 `src/components/thought/ThoughtPrimitive.tsx` — 思维链 Headless 层
+- 创建 `src/components/thought/Thought.tsx` — Thought Styled 层
+- 创建 `src/components/thought/Thought.stories.tsx` — Storybook 示例
+- 创建 `src/components/citation/CitationPrimitive.tsx` — 引用溯源 Headless 层
+- 创建 `src/components/citation/Citation.tsx` — Citation Styled 层
+- 创建 `src/components/citation/Citation.stories.tsx` — Storybook 示例
+- 在 `src/index.ts` 导出 Thought、Citation 组件、Primitive 和类型
+- Thought 支持 `pending / loading / success / error / abort` 状态、折叠内容、可控展开和紧凑模式
+- Citation 支持 `Used N sources` 折叠标题、来源列表、内联引用 hover 预览和点击回调
+- 将 Thought 与 Citation 视觉统一调整为简约风格，并使用 Google 默认字体 `Arial, sans-serif`
+
+### Thought 组件
+
+```tsx
+export type ThoughtStatus = 'pending' | 'loading' | 'success' | 'error' | 'abort'
+
+export interface ThoughtItem {
+  key: string
+  title: ReactNode
+  content?: ReactNode
+  status?: ThoughtStatus
+  icon?: ReactNode | false
+  collapsible?: boolean
+  children?: ThoughtItem[]
+}
+```
+
+关键设计：
+
+- `ThoughtPrimitive` 管理展开状态、状态图标、ARIA 和列表结构
+- `Thought` 只负责 `cn('llm-thought', className)`，默认视觉在 `src/index.css`
+- 状态图标使用明确亮色：success 为绿色，error 为红色，loading 为蓝色
+- 移除状态文字和额外 description，只保留标题与必要内容
+- 仅 loading 项展示可展开 content，loading 标题增加呼吸动画
+
+### Citation 组件
+
+```tsx
+export interface CitationItem {
+  key: string
+  title: ReactNode
+  description?: ReactNode
+  url?: string
+  icon?: ReactNode
+}
+```
+
+关键设计：
+
+- Citation 块级形态参考 Ant Design X Sources：标题行展示 `Used N sources` 和 chevron
+- 展开后只展示来源图标和来源标题，去掉卡片边框、背景、编号和描述
+- 来源项使用更小字号、更小图标和更紧凑间距，hover 时切换为淡蓝链接色
+- `Citation.Inline` 保留内联引用能力，可在正文中展示 `[1]` 并 hover 预览来源信息
+- Storybook 示例改为 bilibili 和 GitHub 两个来源
+
+### Storybook 覆盖
+
+`Thought.stories.tsx` 已覆盖：
+
+- `Basic`：Agent 执行过程
+- `Compact`：紧凑模式
+- `WithoutLine`：无连接线
+- `Statuses`：状态图标展示
+- `Empty`：空状态
+
+`Citation.stories.tsx` 已覆盖：
+
+- `Basic`：默认展开来源列表
+- `Collapsed`：默认折叠
+- `CustomTitle`：自定义标题
+- `Empty`：空状态
+
+### 验证结果
+
+- `pnpm lint` ✅
+- `pnpm build` ✅
+
+### 遇到的问题
+
+- 初版 Thought 信息层级过多，视觉显得冗杂 → 移除状态文字和 description，仅保留必要标题与 loading content
+- 初版 Citation 做成卡片式引用列表，与目标 Sources 截图不符 → 改为透明背景、无边框、小字号的简约来源列表
+- Storybook 示例最初仍使用 twitter / youtube / github → 改为 bilibili / GitHub
+- Citation hover 初版只是 muted 色 → 改为淡蓝色，强化链接感
+
+---
+
 ## 累计产出
 
 ### 目录结构

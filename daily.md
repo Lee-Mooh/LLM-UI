@@ -1818,7 +1818,7 @@ export interface MessageRecord {
   - tarball 包含 README、package.json、ESM、CJS、类型声明、CSS 和 sourcemap
   - 包大小约 105.3 kB，解包后约 570.9 kB，共 10 个文件
 - `npm publish --dry-run --access public` ✅
-  - dry-run 显示将以 public access 发布 `@llm-ui/react@0.1.0`
+  - dry-run 显示将以 public access 发布 `@oakkles/llm-ui-react@0.1.0`
   - 未执行真实发布
 
 ---
@@ -1840,8 +1840,8 @@ export interface MessageRecord {
 
 - 未将真实 API key 写入任何源码、README、Storybook、日报或构建配置
 - 未使用 `VITE_*` 暴露密钥
-- 未执行真实 Vercel 部署
-- 建议部署前轮换已经在对话中出现过的 key
+- 已完成 Vercel 生产部署，但当前 Vercel 项目尚未配置 `DEEPSEEK_API_KEY`
+- 建议部署前轮换已经在对话中出现过的 key，再写入 Vercel 服务端环境变量
 
 ### 验证结果
 
@@ -1851,6 +1851,30 @@ export interface MessageRecord {
 - `pnpm build-storybook` ✅
 - `storybook-static` 中未发现 `DEEPSEEK_API_KEY` 或 key 形态字符串 ✅
 - `dist` 中未发现 `DEEPSEEK_API_KEY`、DeepSeek base URL 或 key 形态字符串 ✅
+
+---
+
+## Day 15: 真实发布结果
+
+### 完成内容
+
+- `@oakkles/llm-ui-react@0.1.1` 已在 npm registry 可查询，tarball 地址为 npm 官方 registry
+- Vercel 项目 `llm-ui-react` 已创建并关联到当前目录
+- Storybook 文档已完成 Vercel Production 部署
+- 生产地址：https://llm-ui-react.vercel.app
+- 本次部署输出的实例地址：https://llm-ui-react-1i4xegke2-lmh3162066424-9065s-projects.vercel.app
+
+### 当前状态
+
+- Vercel 部署状态：Ready ✅
+- Vercel 项目当前未配置环境变量，线上 Demo 会先使用 mock fallback
+- 配置 `DEEPSEEK_API_KEY` 后需要重新部署，线上 Demo 才会启用真实 AI 回复
+
+### 验证结果
+
+- `npm view @oakkles/llm-ui-react@0.1.1 version` ✅
+- `pnpm dlx vercel ls llm-ui-react` ✅
+- Vercel Production deployment Ready ✅
 
 ---
 

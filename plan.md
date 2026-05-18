@@ -4,7 +4,7 @@
 
 在 15-20 天内完成一个面向 AI/LLM 场景的 React 组件库，核心参考 assistant-ui（架构模式）、Vercel chatbot（项目结构）、Vercel AI SDK（流式处理）、chatbot-ui（产品级 UI）。目标是产出一个可通过 npm 安装、Storybook 文档驱动、可部署到 Vercel 验收的完整组件库。
 
-**技术决策**：React + TypeScript | Tailwind CSS + CSS Variables | 单包发布 `@llm-ui/react` | Storybook 中文文档
+**技术决策**：React + TypeScript | Tailwind CSS + CSS Variables | 单包发布 `@oakkles/llm-ui-react` | Storybook 中文文档
 
 ---
 
@@ -385,7 +385,7 @@ async generator / ReadableStream
   - CSS 提取为 `dist/style.css`
   - 外部化 react/react-dom (peerDependencies)
 - package.json 配置
-  - name: `@llm-ui/react`
+  - name: `@oakkles/llm-ui-react`
   - main / module / types 字段
   - peerDependencies: react, react-dom
   - exports 字段 (条件导出)
@@ -571,7 +571,7 @@ interface ActionItem {
 
 1. **Storybook 站点**：每个组件有完整交互示例，主题切换正常，中文文档齐全
 2. **Vercel 部署**：Storybook 静态站点在线可访问
-3. **npm 发布**：`npm pack` 产物包含 dist/ 和类型声明，`import { Bubble } from '@llm-ui/react'` 可用
+3. **npm 发布**：`npm pack` 产物包含 dist/ 和类型声明，`import { Bubble } from '@oakkles/llm-ui-react'` 可用
 4. **单元测试**：核心组件测试通过 `pnpm test`（Vitest）
 5. **场景化 Demo**：完整对话页面可交互，流式输出动画流畅
 6. **代码规范**：`pnpm lint` 无错误，git commit 触发 lint-staged 校验

@@ -1,6 +1,6 @@
 {
-  "name": "@llm-ui/react",
-  "version": "0.1.0",
+  "name": "@oakkles/llm-ui-react",
+  "version": "0.1.1",
   "description": "React components for building AI and LLM chat interfaces.",
   "type": "module",
   "license": "MIT",

@@ -148,7 +148,7 @@ const releaseCitations: CitationItem[] = [
   },
 ]
 
-const docsSnippet = `import { MessageList, Sender } from '@llm-ui/react'
+const docsSnippet = `import { MessageList, Sender } from '@oakkles/llm-ui-react'
 
 function ChatSurface() {
   return (

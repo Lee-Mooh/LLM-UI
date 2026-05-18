@@ -1,15 +1,15 @@
 <div align="center">
 
-# @llm-ui/react
+# @oakkles/llm-ui-react
 
 面向 AI / LLM 产品的 React 组件库，用一套可组合组件快速搭建 Chat、Agent、知识库问答和流式生成界面。
 
-[![npm](https://img.shields.io/npm/v/@llm-ui/react?color=0f172a&label=npm)](https://www.npmjs.com/package/@llm-ui/react)
+[![npm](https://img.shields.io/npm/v/@oakkles/llm-ui-react?color=0f172a&label=npm)](https://www.npmjs.com/package/@oakkles/llm-ui-react)
 ![React](https://img.shields.io/badge/React-18%2B-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-ready-3178C6?logo=typescript&logoColor=white)
 ![Storybook](https://img.shields.io/badge/Storybook-docs-FF4785?logo=storybook&logoColor=white)
 ![Package](https://img.shields.io/badge/package-ESM%20%2B%20CJS-111827)
-![License](https://img.shields.io/npm/l/@llm-ui/react)
+![License](https://img.shields.io/npm/l/@oakkles/llm-ui-react)
 
 </div>
 
@@ -28,13 +28,13 @@
 ## 安装
 
 ```bash
-pnpm add @llm-ui/react
+pnpm add @oakkles/llm-ui-react
 ```
 
 也可以使用 npm：
 
 ```bash
-npm install @llm-ui/react
+npm install @oakkles/llm-ui-react
 ```
 
 ## 快速开始
@@ -42,8 +42,8 @@ npm install @llm-ui/react
 导入组件和样式：
 
 ```tsx
-import { ConfigProvider, MessageList, Sender } from '@llm-ui/react'
-import '@llm-ui/react/style.css'
+import { ConfigProvider, MessageList, Sender } from '@oakkles/llm-ui-react'
+import '@oakkles/llm-ui-react/style.css'
 
 const messages = [
   {
@@ -194,8 +194,8 @@ dist/style.css     # 组件样式
 用户应同时导入组件入口和样式入口：
 
 ```tsx
-import { Bubble } from '@llm-ui/react'
-import '@llm-ui/react/style.css'
+import { Bubble } from '@oakkles/llm-ui-react'
+import '@oakkles/llm-ui-react/style.css'
 ```
 
 ## 在线文档

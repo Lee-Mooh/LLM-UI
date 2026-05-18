@@ -4,7 +4,7 @@
 
 ## 项目概述
 
-`@llm-ui/react` — 面向 AI/LLM 场景的 React 组件库，可通过 npm 发布，带 Storybook 文档，可部署到 Vercel。
+`@oakkles/llm-ui-react` — 面向 AI/LLM 场景的 React 组件库，可通过 npm 发布，带 Storybook 文档，可部署到 Vercel。
 
 ## 常用命令
 
@@ -61,7 +61,10 @@ export interface ExamplePrimitiveProps {
   className?: string
 }
 
-export function ExamplePrimitive({ status = 'done', className }: ExamplePrimitiveProps) {
+export function ExamplePrimitive({
+  status = 'done',
+  className,
+}: ExamplePrimitiveProps) {
   return (
     <section className={className} data-status={status}>
       <div className="llm-example__content">...</div>
@@ -70,13 +73,18 @@ export function ExamplePrimitive({ status = 'done', className }: ExamplePrimitiv
 }
 
 // Example.tsx — 只负责 styled root class
-import { ExamplePrimitive, type ExamplePrimitiveProps } from './ExamplePrimitive'
+import {
+  ExamplePrimitive,
+  type ExamplePrimitiveProps,
+} from './ExamplePrimitive'
 import cn from '../../utils/cn'
 
 export type ExampleProps = ExamplePrimitiveProps
 
 export function Example({ className, ...props }: ExampleProps) {
-  return <ExamplePrimitive className={cn('llm-example', className)} {...props} />
+  return (
+    <ExamplePrimitive className={cn('llm-example', className)} {...props} />
+  )
 }
 ```
 
@@ -107,6 +115,7 @@ export function Example({ className, ...props }: ExampleProps) {
 - **事件**：以 `on` 开头（`onClick`、`onChange`、`onSearch`），均为非必须
 
 事件设计原则：
+
 - 事件都是非必须的，不应强制外部处理
 - 控制流自上而下（父到子），不能反向。抛出具体事件（`onEdited`、`onDeleted`），而非通用事件（`onRefresh`），符合开闭原则
 
@@ -118,7 +127,7 @@ export function Example({ className, ...props }: ExampleProps) {
 // 好的做法 — 插槽
 type EmptyTipProps = {
   text: string
-  append?: JSX.Element  // 灵活插槽
+  append?: JSX.Element // 灵活插槽
   className?: string
 }
 ```
@@ -154,6 +163,7 @@ type EmptyTipProps = {
 严格模式，额外启用：`exactOptionalPropertyTypes`、`noUncheckedIndexedAccess`、`verbatimModuleSyntax`、`noUnusedLocals`、`noUnusedParameters`。
 
 三个 tsconfig 文件：
+
 - `tsconfig.app.json` — 主配置（src + .storybook）
 - `tsconfig.lib.json` — 库构建（继承 app，仅包含 src/index.ts, types, utils, components, hooks）
 - `tsconfig.node.json` — 仅 vite.config.ts
@@ -173,6 +183,6 @@ Story 文件与组件同目录：`src/**/*.stories.@(ts|tsx)`。主题切换工�
 用户分别导入组件和样式：
 
 ```tsx
-import { Bubble } from '@llm-ui/react'
-import '@llm-ui/react/style.css'
+import { Bubble } from '@oakkles/llm-ui-react'
+import '@oakkles/llm-ui-react/style.css'
 ```

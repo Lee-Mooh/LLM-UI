@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./assets/llm-ui-logo.png" alt="LLM UI logo" width="180" />
+
 # @oakkles/llm-ui-react
 
 面向 AI / LLM 产品的 React 组件库，用一套可组合组件快速搭建 Chat、Agent、知识库问答和流式生成界面。

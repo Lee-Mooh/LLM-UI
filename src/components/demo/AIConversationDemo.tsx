@@ -33,6 +33,8 @@ type MessageStore = Record<string, MessageRecord[]>
 
 export interface AIConversationDemoProps {
   forceMock?: boolean
+  onThemeModeChange?: (mode: ThemeMode) => void
+  themeMode?: ThemeMode
 }
 
 const initialConversations: ConversationRecord[] = [
@@ -308,17 +310,17 @@ async function createDemoResponseStream(
 }
 
 function ThemeToggle({
+  mode,
   onModeChange,
 }: {
+  mode: ThemeMode
   onModeChange: (mode: ThemeMode) => void
 }) {
-  const { isDark, setMode } = useTheme()
-  const mode: ThemeMode = isDark ? 'dark' : 'light'
+  const { setMode } = useTheme()
   const nextMode: ThemeMode = mode === 'light' ? 'dark' : 'light'
 
   const handleClick = () => {
     setMode(nextMode)
-    document.documentElement.setAttribute('data-theme', nextMode)
     onModeChange(nextMode)
   }
 
@@ -336,10 +338,13 @@ function ThemeToggle({
 
 export function AIConversationDemo({
   forceMock = false,
+  onThemeModeChange,
+  themeMode: controlledThemeMode,
 }: AIConversationDemoProps) {
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() =>
-    getDocumentTheme(),
+  const [uncontrolledThemeMode, setUncontrolledThemeMode] = useState<ThemeMode>(
+    () => getDocumentTheme(),
   )
+  const themeMode = controlledThemeMode ?? uncontrolledThemeMode
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeConversationId, setActiveConversationId] = useState(
     initialConversations[0]?.id ?? '',
@@ -368,8 +373,10 @@ export function AIConversationDemo({
     .join('|')
 
   useEffect(() => {
+    if (controlledThemeMode) return
+
     const observer = new MutationObserver(() => {
-      setThemeMode(getDocumentTheme())
+      setUncontrolledThemeMode(getDocumentTheme())
     })
 
     observer.observe(document.documentElement, {
@@ -378,7 +385,7 @@ export function AIConversationDemo({
     })
 
     return () => observer.disconnect()
-  }, [])
+  }, [controlledThemeMode])
 
   useEffect(() => {
     const viewport = messagesViewportRef.current?.querySelector(
@@ -609,6 +616,11 @@ export function AIConversationDemo({
       })
   }
 
+  const handleThemeModeChange = (nextMode: ThemeMode) => {
+    setUncontrolledThemeMode(nextMode)
+    onThemeModeChange?.(nextMode)
+  }
+
   const handleCancel = () => {
     cancel()
 
@@ -720,7 +732,10 @@ export function AIConversationDemo({
 
         <main className="llm-demo-chat__main">
           <header className="llm-demo-chat__toolbar">
-            <ThemeToggle onModeChange={setThemeMode} />
+            <ThemeToggle
+              mode={themeMode}
+              onModeChange={handleThemeModeChange}
+            />
           </header>
 
           <div className="llm-demo-chat__messages" ref={messagesViewportRef}>

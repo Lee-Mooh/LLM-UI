@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { type Meta, type StoryObj } from '@storybook/react-vite'
+import { useGlobals } from 'storybook/preview-api'
 
 import { AIConversationDemo } from './AIConversationDemo'
 
@@ -16,12 +18,40 @@ export default meta
 
 type Story = StoryObj<typeof AIConversationDemo>
 
-export const Default: Story = {}
+const renderWithStorybookTheme: Story['render'] = (args) => {
+  const [{ theme }, updateGlobals] = useGlobals()
+  const globalMode = theme === 'dark' ? 'dark' : 'light'
+  const [mode, setMode] = useState(globalMode)
+
+  useEffect(() => {
+    setMode(globalMode)
+  }, [globalMode])
+
+  return (
+    <AIConversationDemo
+      {...args}
+      onThemeModeChange={(nextMode) => {
+        setMode(nextMode)
+        window.parent.postMessage(
+          { type: 'llm-ui-theme-change', theme: nextMode },
+          '*',
+        )
+        updateGlobals({ theme: nextMode })
+      }}
+      themeMode={mode}
+    />
+  )
+}
+
+export const Default: Story = {
+  render: renderWithStorybookTheme,
+}
 
 export const Mocked: Story = {
   args: {
     forceMock: true,
   },
+  render: renderWithStorybookTheme,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
 

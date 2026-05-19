@@ -98,6 +98,24 @@ https://llm-ui-react.vercel.app
 
 Storybook 的全局 Light / Dark toolbar、左侧 manager、顶部工具栏和组件展示区会保持主题同步；Demo 内部的主题按钮也会反向同步 Storybook 全局主题。
 
+## AI 协作开发流程
+
+此项目在开发过程中使用 `Claude Code CLI` 接入 `gpt-5.5`，核心实现围绕当前代码的结构、Storybook 反馈和本地验证闭环推进。
+
+| 环节        | 使用方式                                                                                                      |
+| ----------- | ------------------------------------------------------------------------------------------------------------- |
+| 需求拆解    | 通过 Plan 模式先梳理实现边界、关键文件、风险点和验证方式，再进入编码                                          |
+| CLAUDE.md   | 通过 `/init` 初始化项目级 `memory` 到 `CLAUDE.md`，规范组件开发流程                                           |
+| 代码检索    | 使用 `Explore` subagent 搜索组件、hooks、构建配置和 Storybook 相关实现                                        |
+| 组件设计    | 使用 `component-design-researcher` subagent 对比 shadcn/ui、assistant-ui、Ant Design X 等 AI UI 组件模式      |
+| 视觉与文档  | 使用 `frontend-design`、`readme-polish` skills 辅助 Demo 和视觉表达优化                                       |
+| MCP 辅助    | 结合 shadcn / assistant-ui 文档 MCP 获取组件 API、示例和设计参考，避免只凭记忆实现                            |
+| 安全边界    | 真实模型密钥只放在 Vercel 服务端环境变量；README、源码和 Storybook 中只保留占位变量                           |
+| 代码 Review | 修改后通过 `git diff` 逐项检查变更，重点看 API 设计、类型约束、主题同步、密钥暴露风险和 Storybook 交互稳定性  |
+| 验证闭环    | 使用 `pnpm lint`、`pnpm build`、`pnpm test:storybook`、`pnpm build-storybook` 和线上 Vercel Demo 检查关键路径 |
+
+AI 主要负责扩大检索范围、给出实现计划、辅助生成样板代码和发现遗漏；最终合入前仍以项目实际代码、lint/build/test 结果和浏览器中的 Storybook 表现为准。
+
 ## 项目结构
 
 ```txt

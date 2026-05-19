@@ -3,8 +3,9 @@ import '../src/index.css'
 import './preview.css'
 
 const withTheme = (Story: () => React.JSX.Element, context: StoryContext) => {
-  const theme = context.globals.theme ?? 'light'
+  const theme = context.globals.theme === 'dark' ? 'dark' : 'light'
   document.documentElement.setAttribute('data-theme', theme)
+  window.parent.postMessage({ type: 'llm-ui-theme-change', theme }, '*')
   return Story()
 }
 

@@ -34,7 +34,6 @@ type MessageStore = Record<string, MessageRecord[]>
 export interface AIConversationDemoProps {
   forceMock?: boolean
   onThemeModeChange?: (mode: ThemeMode) => void
-  themeMode?: ThemeMode
 }
 
 const initialConversations: ConversationRecord[] = [
@@ -339,12 +338,10 @@ function ThemeToggle({
 export function AIConversationDemo({
   forceMock = false,
   onThemeModeChange,
-  themeMode: controlledThemeMode,
 }: AIConversationDemoProps) {
-  const [uncontrolledThemeMode, setUncontrolledThemeMode] = useState<ThemeMode>(
-    () => getDocumentTheme(),
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() =>
+    getDocumentTheme(),
   )
-  const themeMode = controlledThemeMode ?? uncontrolledThemeMode
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeConversationId, setActiveConversationId] = useState(
     initialConversations[0]?.id ?? '',
@@ -373,10 +370,8 @@ export function AIConversationDemo({
     .join('|')
 
   useEffect(() => {
-    if (controlledThemeMode) return
-
     const observer = new MutationObserver(() => {
-      setUncontrolledThemeMode(getDocumentTheme())
+      setThemeMode(getDocumentTheme())
     })
 
     observer.observe(document.documentElement, {
@@ -385,7 +380,7 @@ export function AIConversationDemo({
     })
 
     return () => observer.disconnect()
-  }, [controlledThemeMode])
+  }, [])
 
   useEffect(() => {
     const viewport = messagesViewportRef.current?.querySelector(
@@ -617,7 +612,8 @@ export function AIConversationDemo({
   }
 
   const handleThemeModeChange = (nextMode: ThemeMode) => {
-    setUncontrolledThemeMode(nextMode)
+    setThemeMode(nextMode)
+    document.documentElement.setAttribute('data-theme', nextMode)
     onThemeModeChange?.(nextMode)
   }
 

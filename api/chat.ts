@@ -81,7 +81,7 @@ function createChatPayload(body: RequestBody) {
         {
           role: 'system',
           content:
-            '你是 LLM-UI 组件库 Demo 中的 AI 助手，请用简洁、可执行的中文回答用户。',
+            '你是一个通用 AI 助手，运行在 LLM-UI 组件库演示页面中。请直接回答用户问题；如果问题需要实时信息而你无法确认，请说明限制，并给出用户可以继续操作的建议。',
         },
         ...history,
         {

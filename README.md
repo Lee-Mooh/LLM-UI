@@ -13,6 +13,8 @@
 ![Package](https://img.shields.io/badge/package-ESM%20%2B%20CJS-111827)
 ![License](https://img.shields.io/npm/l/@oakkles/llm-ui-react)
 
+[在线 Storybook / Vercel Demo](https://llm-ui-react.vercel.app)
+
 </div>
 
 ## 特性
@@ -24,8 +26,9 @@
 | 流式生成   | `useStream`、`mockStream` 和 Markdown streaming 状态适配流式回复         |
 | 富文本输出 | `Mark`、`CodeHighlighter` 支持 Markdown、GFM、代码块和语法高亮           |
 | Agent 过程 | `Think`、`Thought`、`Citation` 展示思考过程、步骤和引用来源              |
+| 会话管理   | `ConversationList`、`ConversationItem` 支持搜索、折叠、收藏、置顶和删除  |
 | 主题系统   | 基于 `data-theme` 和 CSS Variables，内置 light / dark 主题和柔和切换动画 |
-| AI Ready   | Demo 可接入 `/api/chat` 这类后端接口，安全使用真实模型能力               |
+| AI Ready   | 在线 Demo 已接入真实 AI，优先通过 Vercel `/api/chat` 服务端代理请求模型  |
 
 ## 安装
 
@@ -70,9 +73,15 @@ export function Chat() {
 }
 ```
 
-## 真实 AI Demo 接入
+## 在线 Demo
 
-组件库可以发布静态 Demo，也可以在部署到 Vercel 后接入真实 AI 能力。推荐结构是：
+当前 Storybook 已部署到 Vercel：
+
+```txt
+https://llm-ui-react.vercel.app
+```
+
+其中 `Examples / AI Conversation Demo / Default` 已接入真实 AI：
 
 ```txt
 浏览器 Demo
@@ -81,21 +90,20 @@ export function Chat() {
   -> OpenAI-compatible 模型服务
 ```
 
-推荐把模型 API Key 只放在 Vercel 服务端环境变量中：
+`Mocked` story 保留本地模拟流式回复，用于稳定的 Storybook interaction / browser tests。
+
+Storybook 的全局 Light / Dark toolbar、左侧 manager、顶部工具栏和组件展示区会保持主题同步；Demo 内部的主题按钮也会反向同步 Storybook 全局主题。
+
+## 真实 AI 接入
+
+推荐把模型 API Key 只放在 Vercel 服务端环境变量中，前端只调用同源后端接口：
 
 ```txt
 DEEPSEEK_API_KEY=your-server-side-key
 DEEPSEEK_MODEL=deepseek-chat
 ```
 
-如果只部署静态 Storybook，也可以配置浏览器可见变量让 Demo 直连 DeepSeek。注意：`VITE_*` 会进入前端构建产物，任何访问页面的人都能在浏览器里看到这个 key。
-
-```txt
-VITE_DEEPSEEK_API_KEY=your-browser-visible-key
-VITE_DEEPSEEK_MODEL=deepseek-chat
-```
-
-前端 Demo 优先调用自己的后端接口：
+前端请求示例：
 
 ```ts
 async function* requestAI(message: string) {
@@ -118,7 +126,14 @@ async function* requestAI(message: string) {
 }
 ```
 
-这样 npm 包保持安全、可复用，Vercel 上的在线 Demo 仍然可以拥有真实 AI 回复。当前 Demo 在 `/api/chat` 不可用时，也支持通过 `VITE_DEEPSEEK_API_KEY` 直接从浏览器请求 DeepSeek。
+当前 Demo 还提供浏览器直连 DeepSeek 的兜底路径：当 `/api/chat` 不可用或未配置时，可通过 `VITE_DEEPSEEK_API_KEY` 和 `VITE_DEEPSEEK_MODEL` 在静态 Storybook 中直接请求模型。
+
+```txt
+VITE_DEEPSEEK_API_KEY=your-browser-visible-key
+VITE_DEEPSEEK_MODEL=deepseek-chat
+```
+
+注意：`VITE_*` 变量会进入前端构建产物，任何访问页面的人都能在浏览器 DevTools 中看到这个 key。生产环境更推荐使用 `/api/chat` 服务端代理。
 
 ## 组件矩阵
 
@@ -206,7 +221,3 @@ dist/style.css     # 组件样式
 import { Bubble } from '@oakkles/llm-ui-react'
 import '@oakkles/llm-ui-react/style.css'
 ```
-
-## 在线文档
-
-Storybook / Vercel Demo：Coming soon

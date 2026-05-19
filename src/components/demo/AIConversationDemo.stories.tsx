@@ -16,7 +16,9 @@ export default meta
 
 type Story = StoryObj<typeof AIConversationDemo>
 
-export const Default: Story = {
+export const Default: Story = {}
+
+export const Mocked: Story = {
   args: {
     forceMock: true,
   },

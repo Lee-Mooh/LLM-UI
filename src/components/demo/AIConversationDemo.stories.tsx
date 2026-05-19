@@ -29,19 +29,24 @@ export const Mocked: Story = {
       expect(canvasElement.querySelector('.llm-demo-chat')).toBeInTheDocument(),
     )
 
+    const demo = canvasElement.querySelector('.llm-demo-chat')
+    const initialTheme = demo?.getAttribute('data-theme-mode')
+    const nextTheme = initialTheme === 'dark' ? 'light' : 'dark'
+    const initialThemeButtonName =
+      initialTheme === 'dark' ? '切换到浅色主题' : '切换到深色主题'
+    const nextThemeButtonName =
+      nextTheme === 'dark' ? '切换到浅色主题' : '切换到深色主题'
+
     const themeButton = await waitFor(() =>
-      canvas.getByRole('button', { name: '切换到深色主题' }),
+      canvas.getByRole('button', { name: initialThemeButtonName }),
     )
     await userEvent.click(themeButton)
     await waitFor(() =>
       expect(
-        canvas.getByRole('button', { name: '切换到浅色主题' }),
+        canvas.getByRole('button', { name: nextThemeButtonName }),
       ).toBeInTheDocument(),
     )
-    await expect(canvasElement.querySelector('.llm-demo-chat')).toHaveAttribute(
-      'data-theme-mode',
-      'dark',
-    )
+    await expect(demo).toHaveAttribute('data-theme-mode', nextTheme)
 
     await userEvent.click(canvas.getByRole('button', { name: '关闭边栏' }))
     await expect(

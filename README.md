@@ -6,14 +6,18 @@
 
 面向 AI / LLM 产品的 React 组件库，用一套可组合组件快速搭建 Chat、Agent、知识库问答和流式生成界面。
 
-[![npm](https://img.shields.io/npm/v/@oakkles/llm-ui-react?color=0f172a&label=npm)](https://www.npmjs.com/package/@oakkles/llm-ui-react)
-![React](https://img.shields.io/badge/React-18%2B-61DAFB?logo=react&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-ready-3178C6?logo=typescript&logoColor=white)
-![Storybook](https://img.shields.io/badge/Storybook-docs-FF4785?logo=storybook&logoColor=white)
-![Package](https://img.shields.io/badge/package-ESM%20%2B%20CJS-111827)
-![License](https://img.shields.io/npm/l/@oakkles/llm-ui-react)
+<p>
+  <a href="https://www.npmjs.com/package/@oakkles/llm-ui-react"><img alt="npm version" src="https://img.shields.io/npm/v/@oakkles/llm-ui-react?style=flat-square&label=npm&labelColor=0f172a&color=2563eb" /></a>
+  <img alt="React 18+" src="https://img.shields.io/badge/React-18%2B-149eca?style=flat-square&logo=react&logoColor=white" />
+  <img alt="TypeScript ready" src="https://img.shields.io/badge/TypeScript-ready-3178c6?style=flat-square&logo=typescript&logoColor=white" />
+  <img alt="Storybook docs" src="https://img.shields.io/badge/Storybook-docs-ff4785?style=flat-square&logo=storybook&logoColor=white" />
+  <img alt="Package format" src="https://img.shields.io/badge/ESM%20%2B%20CJS-111827?style=flat-square&label=package" />
+  <img alt="License" src="https://img.shields.io/npm/l/@oakkles/llm-ui-react?style=flat-square&label=license&labelColor=0f172a&color=16a34a" />
+</p>
 
-[在线 Storybook / Vercel Demo](https://llm-ui-react.vercel.app)
+<p>
+  <a href="https://llm-ui-react.vercel.app"><strong>在线 Storybook / Vercel Demo</strong></a>
+</p>
 
 </div>
 
@@ -93,6 +97,50 @@ https://llm-ui-react.vercel.app
 `Mocked` story 保留本地模拟流式回复，用于稳定的 Storybook interaction / browser tests。
 
 Storybook 的全局 Light / Dark toolbar、左侧 manager、顶部工具栏和组件展示区会保持主题同步；Demo 内部的主题按钮也会反向同步 Storybook 全局主题。
+
+## 项目结构
+
+```txt
+D:\LLM-UI
+├── api/                       # Vercel Serverless Functions
+│   └── chat.ts                # 同源 AI 流式代理接口
+├── assets/                    # README 与文档静态资源
+├── .storybook/                # Storybook 配置、主题同步和预览样式
+│   ├── main.ts
+│   ├── manager.ts
+│   ├── preview.ts
+│   └── preview.css
+├── src/
+│   ├── components/            # Primitive + Styled 组件实现与 stories
+│   │   ├── actions/
+│   │   ├── bubble/
+│   │   ├── citation/
+│   │   ├── code-highlighter/
+│   │   ├── config-provider/
+│   │   ├── conversation/
+│   │   ├── demo/
+│   │   ├── mark/
+│   │   ├── message-list/
+│   │   ├── notification/
+│   │   ├── prompts/
+│   │   ├── sender/
+│   │   ├── think/
+│   │   └── thought/
+│   ├── hooks/                 # 组件库 hooks
+│   ├── locale/                # 多语言文案
+│   ├── styles/                # tokens、light / dark 主题变量
+│   ├── types/                 # 公共类型
+│   ├── utils/                 # className、stream、Markdown 等工具
+│   ├── index.ts               # 组件库入口
+│   ├── index.css              # 全量组件样式入口
+│   └── style.ts               # CSS 构建入口
+├── dist/                      # npm 发布产物
+├── storybook-static/          # Storybook 静态构建产物
+├── tsup.config.ts             # JS / DTS 构建配置
+├── vite.config.ts             # 开发与测试配置
+├── vite.styles.config.ts      # 样式构建配置
+└── package.json
+```
 
 ## 真实 AI 接入
 

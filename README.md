@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./assets/llm-ui-logo.png" alt="LLM UI logo" width="180" />
+<img src="./assets/llm-ui-logo.png" alt="LLM UI logo" width="360" />
 
 # @oakkles/llm-ui-react
 

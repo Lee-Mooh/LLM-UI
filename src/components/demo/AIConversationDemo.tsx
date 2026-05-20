@@ -350,14 +350,14 @@ function splitInlineThink(content: string, finalize = false) {
   if (closeIndex === -1) {
     return finalize
       ? {
-          answer: beforeThink,
+          answer: `${beforeThink}${afterOpen}`,
           done: true,
-          thought: afterOpen,
+          thought: '',
         }
       : {
           answer: beforeThink,
           done: false,
-          thought: afterOpen,
+          thought: '',
         }
   }
 
@@ -365,19 +365,6 @@ function splitInlineThink(content: string, finalize = false) {
     answer: `${beforeThink}${afterOpen.slice(closeIndex + closeTag.length)}`,
     done: true,
     thought: afterOpen.slice(0, closeIndex),
-  }
-}
-
-async function streamReplyText(
-  content: string,
-  onToken: (content: string) => void,
-) {
-  let nextContent = ''
-
-  for (const token of content.match(/[\s\S]{1,6}/g) ?? []) {
-    nextContent += token
-    onToken(nextContent)
-    await new Promise((resolve) => window.setTimeout(resolve, 18))
   }
 }
 
@@ -590,6 +577,20 @@ export function AIConversationDemo({
   const handleSend = (message: string) => {
     if (!activeConversationId) return
 
+    if (streamingTarget) {
+      requestSeqRef.current += 1
+      cancel()
+      setMessagesByConversation((items) =>
+        updateConversationMessage(
+          items,
+          streamingTarget.conversationId,
+          streamingTarget.messageId,
+          { loading: false },
+        ),
+      )
+      setStreamingTarget(null)
+    }
+
     const userMessage: MessageRecord = {
       id: createMessageId('user'),
       role: 'user',
@@ -727,7 +728,28 @@ export function AIConversationDemo({
         const inlineThink = splitInlineThink(content)
         hasInlineThink = hasInlineThink || Boolean(inlineThink.thought)
 
-        if (hasInlineThink && inlineThink.done) {
+        if (hasReasoningContent) {
+          answerStarted = true
+          setMessagesByConversation((items) =>
+            updateConversationMessage(
+              items,
+              nextStreamingTarget.conversationId,
+              nextStreamingTarget.messageId,
+              { content, loading: true },
+            ),
+          )
+          setReasoningStore((store) =>
+            patchReasoningState(store, assistantMessageId, {
+              content: store[assistantMessageId]?.content || '',
+              steps: store[assistantMessageId]?.steps || [],
+              phase: 'responding',
+              responsePreview: content,
+            }),
+          )
+          return
+        }
+
+        if (inlineThink.done) {
           answerStarted = true
           setMessagesByConversation((items) =>
             updateConversationMessage(
@@ -761,39 +783,27 @@ export function AIConversationDemo({
           ? reasoning
           : finalInlineThink.thought
 
-        if (answerStarted) {
-          completeReply(finalAnswer, finalThought)
-          return
-        }
-
-        setMessagesByConversation((items) =>
-          updateConversationMessage(
-            items,
-            nextStreamingTarget.conversationId,
-            nextStreamingTarget.messageId,
-            { content: '', loading: true },
-          ),
-        )
-        setReasoningStore((store) =>
-          patchReasoningState(store, assistantMessageId, {
-            content: finalThought,
-            steps: finalThought ? parseReasoningSteps(finalThought) : [],
-            phase: 'responding',
-            responsePreview: finalAnswer,
-            hasReasoningContent: Boolean(finalThought),
-          }),
-        )
-        void streamReplyText(finalAnswer, (nextContent) => {
-          answerStarted = true
+        if (!answerStarted) {
           setMessagesByConversation((items) =>
             updateConversationMessage(
               items,
               nextStreamingTarget.conversationId,
               nextStreamingTarget.messageId,
-              { content: nextContent, loading: true },
+              { content: finalAnswer, loading: true },
             ),
           )
-        }).then(() => completeReply(finalAnswer, finalThought))
+        }
+
+        setReasoningStore((store) =>
+          patchReasoningState(store, assistantMessageId, {
+            content: finalThought,
+            steps: finalThought ? parseReasoningSteps(finalThought) : [],
+            phase: 'done',
+            responsePreview: finalAnswer,
+            hasReasoningContent: Boolean(finalThought),
+          }),
+        )
+        completeReply(finalAnswer, finalThought)
       },
       onError: () => {
         // Fallback to regular stream
@@ -834,41 +844,28 @@ export function AIConversationDemo({
                 const finalAnswer = inlineThink.answer.trimStart()
                 const finalThought = inlineThink.thought
 
-                if (answerStarted) {
-                  completeReply(finalAnswer, finalThought)
-                  return
+                if (!answerStarted) {
+                  setMessagesByConversation((items) =>
+                    updateConversationMessage(
+                      items,
+                      nextStreamingTarget.conversationId,
+                      nextStreamingTarget.messageId,
+                      { content: finalAnswer, loading: true },
+                    ),
+                  )
                 }
-
-                setMessagesByConversation((items) =>
-                  updateConversationMessage(
-                    items,
-                    nextStreamingTarget.conversationId,
-                    nextStreamingTarget.messageId,
-                    { content: '', loading: true },
-                  ),
-                )
                 setReasoningStore((store) =>
                   patchReasoningState(store, assistantMessageId, {
                     content: finalThought,
                     steps: finalThought
                       ? parseReasoningSteps(finalThought)
                       : [],
-                    phase: 'responding',
+                    phase: 'done',
                     responsePreview: finalAnswer,
                     hasReasoningContent: Boolean(finalThought),
                   }),
                 )
-                void streamReplyText(finalAnswer, (streamedContent) => {
-                  answerStarted = true
-                  setMessagesByConversation((items) =>
-                    updateConversationMessage(
-                      items,
-                      nextStreamingTarget.conversationId,
-                      nextStreamingTarget.messageId,
-                      { content: streamedContent, loading: true },
-                    ),
-                  )
-                }).then(() => completeReply(finalAnswer, finalThought))
+                completeReply(finalAnswer, finalThought)
               },
               onError: () => {
                 setMessagesByConversation((items) =>

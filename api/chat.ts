@@ -104,12 +104,14 @@ function createChatPayload(body: RequestBody) {
   }
 }
 
-function extractDelta(line: string): StreamChunk | null {
-  if (!line.startsWith('data:')) return null
+function extractDelta(line: string): StreamChunk[] {
+  if (!line.startsWith('data:')) return []
 
   const data = line.slice(5).trim()
 
-  if (!data || data === '[DONE]') return { type: 'done' }
+  if (!data) return []
+
+  if (data === '[DONE]') return [{ type: 'done' }]
 
   try {
     const payload = JSON.parse(data) as {
@@ -123,21 +125,21 @@ function extractDelta(line: string): StreamChunk | null {
 
     const delta = payload.choices?.[0]?.delta
 
-    if (!delta) return null
+    if (!delta) return []
 
-    // DeepSeek R1 returns reasoning_content for thinking process
+    const chunks: StreamChunk[] = []
+
     if (delta.reasoning_content) {
-      return { type: 'reasoning', text: delta.reasoning_content }
+      chunks.push({ type: 'reasoning', text: delta.reasoning_content })
     }
 
-    // Regular content
     if (delta.content) {
-      return { type: 'content', text: delta.content }
+      chunks.push({ type: 'content', text: delta.content })
     }
 
-    return null
+    return chunks
   } catch {
-    return null
+    return []
   }
 }
 
@@ -170,19 +172,18 @@ async function streamOpenAIResponse(
       buffer = lines.pop() ?? ''
 
       for (const line of lines) {
-        const chunk = extractDelta(line.trim())
+        const chunks = extractDelta(line.trim())
 
-        if (chunk) {
-          // Send as SSE event
+        for (const chunk of chunks) {
           response.write(`data: ${JSON.stringify(chunk)}\n\n`)
         }
       }
     }
 
     if (buffer) {
-      const chunk = extractDelta(buffer.trim())
+      const chunks = extractDelta(buffer.trim())
 
-      if (chunk) {
+      for (const chunk of chunks) {
         response.write(`data: ${JSON.stringify(chunk)}\n\n`)
       }
     }

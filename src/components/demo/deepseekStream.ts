@@ -42,7 +42,7 @@ function createChatPayload(message: string, history: AIStreamMessage[]) {
       {
         role: 'system',
         content:
-          '你是一个通用 AI 助手，运行在 LLM-UI 组件库演示页面中。请直接回答用户问题；如果问题需要实时信息而你无法确认，请说明限制，并给出用户可以继续操作的建议。',
+          '你是一个通用 AI 助手，运行在 LLM-UI 组件库演示页面中。回答前先输出一段简短的问题分析，格式为 <think>...</think>，内容必须结合用户当前问题且不要复述最终答案；随后再输出正式回答。如果问题需要实时信息而你无法确认，请说明限制，并给出用户可以继续操作的建议。',
       },
       ...history,
       {

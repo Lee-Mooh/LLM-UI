@@ -334,6 +334,47 @@ function patchReasoningState(
   }
 }
 
+function splitInlineThink(content: string) {
+  const openTag = '<think>'
+  const closeTag = '</think>'
+  const openIndex = content.indexOf(openTag)
+
+  if (openIndex === -1) {
+    return { answer: content, done: true, thought: '' }
+  }
+
+  const beforeThink = content.slice(0, openIndex)
+  const afterOpen = content.slice(openIndex + openTag.length)
+  const closeIndex = afterOpen.indexOf(closeTag)
+
+  if (closeIndex === -1) {
+    return {
+      answer: beforeThink,
+      done: false,
+      thought: afterOpen,
+    }
+  }
+
+  return {
+    answer: `${beforeThink}${afterOpen.slice(closeIndex + closeTag.length)}`,
+    done: true,
+    thought: afterOpen.slice(0, closeIndex),
+  }
+}
+
+async function streamReplyText(
+  content: string,
+  onToken: (content: string) => void,
+) {
+  let nextContent = ''
+
+  for (const token of content.match(/[\s\S]{1,6}/g) ?? []) {
+    nextContent += token
+    onToken(nextContent)
+    await new Promise((resolve) => window.setTimeout(resolve, 18))
+  }
+}
+
 async function createDemoResponseStream(
   message: string,
   history: AIStreamMessage[],
@@ -594,6 +635,7 @@ export function AIConversationDemo({
 
     const history = createAIHistory(activeMessages)
     let hasReasoningContent = false
+    let hasInlineThink = false
 
     createAIResponseStreamWithReasoning(message, history, {
       onReasoning: (reasoningText) => {
@@ -617,46 +659,139 @@ export function AIConversationDemo({
               { content, loading: true },
             ),
           )
+          setReasoningStore((store) =>
+            patchReasoningState(store, assistantMessageId, {
+              content: store[assistantMessageId]?.content || '',
+              steps: store[assistantMessageId]?.steps || [],
+              phase: 'responding',
+              responsePreview: content,
+            }),
+          )
+          return
+        }
+
+        const inlineThink = splitInlineThink(content)
+        hasInlineThink = hasInlineThink || Boolean(inlineThink.thought)
+
+        if (hasInlineThink && inlineThink.done) {
+          setMessagesByConversation((items) =>
+            updateConversationMessage(
+              items,
+              nextStreamingTarget.conversationId,
+              nextStreamingTarget.messageId,
+              { content: inlineThink.answer, loading: true },
+            ),
+          )
         }
 
         setReasoningStore((store) =>
           patchReasoningState(store, assistantMessageId, {
-            phase: hasReasoningContent ? 'responding' : 'reasoning',
-            responsePreview: content,
+            content: inlineThink.thought,
+            steps: inlineThink.thought ? [inlineThink.thought] : [],
+            phase:
+              hasInlineThink && inlineThink.done ? 'responding' : 'reasoning',
+            responsePreview: inlineThink.answer,
+            hasReasoningContent: hasInlineThink,
           }),
         )
       },
       onComplete: (content, reasoning) => {
+        const finalInlineThink = splitInlineThink(content)
+        const finalAnswer = hasReasoningContent
+          ? content
+          : finalInlineThink.answer.trimStart()
+        const finalThought = hasReasoningContent
+          ? reasoning
+          : finalInlineThink.thought
+
+        if (hasReasoningContent) {
+          setMessagesByConversation((items) =>
+            updateConversationMessage(
+              items,
+              nextStreamingTarget.conversationId,
+              nextStreamingTarget.messageId,
+              { content: finalAnswer, loading: false },
+            ),
+          )
+          setConversations((items) =>
+            items.map((conversation) =>
+              conversation.id === nextStreamingTarget.conversationId
+                ? {
+                    ...conversation,
+                    lastMessage: finalAnswer.slice(0, 42),
+                    timestamp: getCurrentTime(),
+                  }
+                : conversation,
+            ),
+          )
+          setStreamingTarget(null)
+          setReasoningStore((store) =>
+            patchReasoningState(store, assistantMessageId, {
+              content: finalThought,
+              steps: finalThought ? parseReasoningSteps(finalThought) : [],
+              phase: 'done',
+              responsePreview: finalAnswer,
+            }),
+          )
+          pushNotification('success', '回复已完成')
+          return
+        }
+
         setMessagesByConversation((items) =>
           updateConversationMessage(
             items,
             nextStreamingTarget.conversationId,
             nextStreamingTarget.messageId,
-            { content, loading: false },
+            { content: '', loading: true },
           ),
         )
-        setConversations((items) =>
-          items.map((conversation) =>
-            conversation.id === nextStreamingTarget.conversationId
-              ? {
-                  ...conversation,
-                  lastMessage: content.slice(0, 42),
-                  timestamp: getCurrentTime(),
-                }
-              : conversation,
-          ),
-        )
-        setStreamingTarget(null)
         setReasoningStore((store) =>
           patchReasoningState(store, assistantMessageId, {
-            content: reasoning,
-            steps: reasoning ? parseReasoningSteps(reasoning) : [],
-            phase: 'done',
-            responsePreview: content,
+            content: finalThought,
+            steps: finalThought ? parseReasoningSteps(finalThought) : [],
+            phase: 'responding',
+            responsePreview: finalAnswer,
+            hasReasoningContent: Boolean(finalThought),
           }),
         )
-
-        pushNotification('success', '回复已完成')
+        void streamReplyText(finalAnswer, (nextContent) => {
+          setMessagesByConversation((items) =>
+            updateConversationMessage(
+              items,
+              nextStreamingTarget.conversationId,
+              nextStreamingTarget.messageId,
+              { content: nextContent, loading: true },
+            ),
+          )
+        }).then(() => {
+          setMessagesByConversation((items) =>
+            updateConversationMessage(
+              items,
+              nextStreamingTarget.conversationId,
+              nextStreamingTarget.messageId,
+              { content: finalAnswer, loading: false },
+            ),
+          )
+          setConversations((items) =>
+            items.map((conversation) =>
+              conversation.id === nextStreamingTarget.conversationId
+                ? {
+                    ...conversation,
+                    lastMessage: finalAnswer.slice(0, 42),
+                    timestamp: getCurrentTime(),
+                  }
+                : conversation,
+            ),
+          )
+          setStreamingTarget(null)
+          setReasoningStore((store) =>
+            patchReasoningState(store, assistantMessageId, {
+              phase: 'done',
+              responsePreview: finalAnswer,
+            }),
+          )
+          pushNotification('success', '回复已完成')
+        })
       },
       onError: () => {
         // Fallback to regular stream
@@ -664,50 +799,80 @@ export function AIConversationDemo({
           .then((generator) =>
             start(generator, {
               onToken: (nextContent) => {
-                setReasoningStore((store) => {
-                  const current = store[assistantMessageId]
+                const inlineThink = splitInlineThink(nextContent)
 
-                  if (current?.phase !== 'responding') {
-                    return patchReasoningState(store, assistantMessageId, {
-                      phase: 'reasoning',
-                      responsePreview: nextContent,
-                    })
-                  }
-
-                  return patchReasoningState(store, assistantMessageId, {
-                    phase: 'responding',
-                    responsePreview: nextContent,
-                  })
-                })
+                setReasoningStore((store) =>
+                  patchReasoningState(store, assistantMessageId, {
+                    content: inlineThink.thought,
+                    steps: inlineThink.thought ? [inlineThink.thought] : [],
+                    phase: inlineThink.done ? 'responding' : 'reasoning',
+                    responsePreview: inlineThink.answer,
+                    hasReasoningContent: Boolean(inlineThink.thought),
+                  }),
+                )
               },
               onComplete: (nextContent) => {
+                const inlineThink = splitInlineThink(nextContent)
+                const finalAnswer = inlineThink.answer.trimStart()
+                const finalThought = inlineThink.thought
+
                 setMessagesByConversation((items) =>
                   updateConversationMessage(
                     items,
                     nextStreamingTarget.conversationId,
                     nextStreamingTarget.messageId,
-                    { content: nextContent, loading: false },
+                    { content: '', loading: true },
                   ),
                 )
-                setConversations((items) =>
-                  items.map((conversation) =>
-                    conversation.id === nextStreamingTarget.conversationId
-                      ? {
-                          ...conversation,
-                          lastMessage: nextContent.slice(0, 42),
-                          timestamp: getCurrentTime(),
-                        }
-                      : conversation,
-                  ),
-                )
-                setStreamingTarget(null)
                 setReasoningStore((store) =>
                   patchReasoningState(store, assistantMessageId, {
-                    phase: 'done',
-                    responsePreview: nextContent,
+                    content: finalThought,
+                    steps: finalThought
+                      ? parseReasoningSteps(finalThought)
+                      : [],
+                    phase: 'responding',
+                    responsePreview: finalAnswer,
+                    hasReasoningContent: Boolean(finalThought),
                   }),
                 )
-                pushNotification('success', '回复已完成')
+                void streamReplyText(finalAnswer, (streamedContent) => {
+                  setMessagesByConversation((items) =>
+                    updateConversationMessage(
+                      items,
+                      nextStreamingTarget.conversationId,
+                      nextStreamingTarget.messageId,
+                      { content: streamedContent, loading: true },
+                    ),
+                  )
+                }).then(() => {
+                  setMessagesByConversation((items) =>
+                    updateConversationMessage(
+                      items,
+                      nextStreamingTarget.conversationId,
+                      nextStreamingTarget.messageId,
+                      { content: finalAnswer, loading: false },
+                    ),
+                  )
+                  setConversations((items) =>
+                    items.map((conversation) =>
+                      conversation.id === nextStreamingTarget.conversationId
+                        ? {
+                            ...conversation,
+                            lastMessage: finalAnswer.slice(0, 42),
+                            timestamp: getCurrentTime(),
+                          }
+                        : conversation,
+                    ),
+                  )
+                  setStreamingTarget(null)
+                  setReasoningStore((store) =>
+                    patchReasoningState(store, assistantMessageId, {
+                      phase: 'done',
+                      responsePreview: finalAnswer,
+                    }),
+                  )
+                  pushNotification('success', '回复已完成')
+                })
               },
               onError: () => {
                 setMessagesByConversation((items) =>
@@ -811,10 +976,9 @@ export function AIConversationDemo({
         reasoning.content ||
         (reasoning.phase === 'done'
           ? '已完成回复组织。'
-          : reasoning.responsePreview ||
-            (reasoning.phase === 'connecting'
-              ? '正在连接模型，等待推理片段返回。'
-              : '正在整理回复内容。'))
+          : reasoning.phase === 'connecting'
+            ? '正在连接模型，等待模型返回问题分析。'
+            : '等待模型返回问题分析。')
       const thoughtItems: ThoughtItem[] = hasReasoningSteps
         ? reasoning.steps.map((step, index) => ({
             key: `step-${index}`,
@@ -855,8 +1019,7 @@ export function AIConversationDemo({
                     : reasoning.phase === 'error'
                       ? 'error'
                       : 'pending',
-              content:
-                reasoning.responsePreview || '正在等待模型生成可用内容。',
+              content: reasoning.content || '正在等待模型返回问题分析。',
             },
             {
               key: 'respond',
@@ -869,8 +1032,7 @@ export function AIConversationDemo({
                     : reasoning.phase === 'error'
                       ? 'error'
                       : 'pending',
-              content:
-                reasoning.responsePreview || '等待思考完成后开始输出正文。',
+              content: '等待问题分析完成后开始输出正文。',
             },
           ]
 

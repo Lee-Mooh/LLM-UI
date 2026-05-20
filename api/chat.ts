@@ -1,3 +1,10 @@
+declare const process: {
+  env: {
+    DEEPSEEK_API_KEY?: string
+    DEEPSEEK_MODEL?: string
+  }
+}
+
 type VercelRequest = {
   method?: string
   body?: unknown

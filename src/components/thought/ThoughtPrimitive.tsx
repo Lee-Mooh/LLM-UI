@@ -127,7 +127,7 @@ function StatusIcon({ status }: { status: ThoughtStatus }) {
 }
 
 function hasExpandableContent(item: ThoughtItem) {
-  return Boolean(item.status === 'loading' && item.content)
+  return Boolean(item.content)
 }
 
 interface ThoughtNodeProps {
@@ -187,9 +187,7 @@ function ThoughtNode({
             hidden={!expanded}
             id={contentId}
           >
-            {status === 'loading' && item.content ? (
-              <div className="llm-thought__body">{item.content}</div>
-            ) : null}
+            <div className="llm-thought__body">{item.content}</div>
           </div>
         ) : null}
       </div>

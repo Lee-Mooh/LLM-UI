@@ -743,12 +743,11 @@ export function AIConversationDemo({
   const renderAssistantAddons = (message: MessageRecord) => {
     const reasoning = reasoningStore[message.id]
 
-    // Show real reasoning from AI if available
     if (reasoning && reasoning.steps.length > 0) {
       const thoughtItems: ThoughtItem[] = reasoning.steps.map(
         (step, index) => ({
           key: `step-${index}`,
-          title: `步骤 ${index + 1}`,
+          title: message.loading ? '回复中' : `步骤 ${index + 1}`,
           status: message.loading ? 'loading' : 'success',
           content: step,
           collapsible: true,
@@ -758,13 +757,15 @@ export function AIConversationDemo({
 
       return (
         <div className="llm-demo-chat__message-addons">
-          <Think
-            content={
-              reasoning.content.slice(0, 200) +
-              (reasoning.content.length > 200 ? '...' : '')
-            }
-            status={message.loading ? 'thinking' : 'done'}
-          />
+          {message.loading ? (
+            <Think
+              content={
+                reasoning.content.slice(0, 200) +
+                (reasoning.content.length > 200 ? '...' : '')
+              }
+              label="回复中"
+            />
+          ) : null}
           <Thought
             compact
             defaultExpandedKeys={
@@ -773,26 +774,25 @@ export function AIConversationDemo({
                 : undefined
             }
             items={thoughtItems}
-            title="推理过程"
+            title={message.loading ? '回复进度' : '推理过程'}
           />
         </div>
       )
     }
 
-    // Loading state without reasoning yet
     if (message.loading) {
       return (
         <div className="llm-demo-chat__message-addons">
-          <Think content="正在分析问题，准备生成回复..." />
+          <Think content="正在组织回复内容..." label="回复中" />
           <Thought
             compact
-            defaultExpandedKeys={['thinking']}
+            defaultExpandedKeys={['replying']}
             items={[
               {
-                key: 'thinking',
-                title: 'AI 正在思考',
+                key: 'replying',
+                title: '回复中',
                 status: 'loading',
-                content: '正在调用模型进行推理...',
+                content: '正在连接模型并生成回复...',
               },
             ]}
           />

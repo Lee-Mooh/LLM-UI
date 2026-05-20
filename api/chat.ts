@@ -22,10 +22,16 @@ type ChatMessage = {
 type RequestBody = {
   message?: unknown
   history?: unknown
+  model?: unknown
+}
+
+type StreamChunk = {
+  type: 'reasoning' | 'content' | 'done'
+  text?: string
 }
 
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
-const DEFAULT_MODEL = 'deepseek-chat'
+const DEFAULT_MODEL = 'deepseek-reasoner'
 const MAX_MESSAGE_LENGTH = 4000
 const MAX_HISTORY_ITEMS = 10
 
@@ -73,10 +79,14 @@ function createChatPayload(body: RequestBody) {
 
   const normalizedMessage = message.slice(0, MAX_MESSAGE_LENGTH)
   const history = normalizeHistory(body.history)
+  const model =
+    typeof body.model === 'string'
+      ? body.model
+      : process.env.DEEPSEEK_MODEL || DEFAULT_MODEL
 
   return {
     payload: {
-      model: process.env.DEEPSEEK_MODEL || DEFAULT_MODEL,
+      model,
       messages: [
         {
           role: 'system',
@@ -94,25 +104,40 @@ function createChatPayload(body: RequestBody) {
   }
 }
 
-function extractDelta(line: string) {
-  if (!line.startsWith('data:')) return ''
+function extractDelta(line: string): StreamChunk | null {
+  if (!line.startsWith('data:')) return null
 
   const data = line.slice(5).trim()
 
-  if (!data || data === '[DONE]') return ''
+  if (!data || data === '[DONE]') return { type: 'done' }
 
   try {
     const payload = JSON.parse(data) as {
       choices?: Array<{
         delta?: {
+          reasoning_content?: string
           content?: string
         }
       }>
     }
 
-    return payload.choices?.[0]?.delta?.content ?? ''
+    const delta = payload.choices?.[0]?.delta
+
+    if (!delta) return null
+
+    // DeepSeek R1 returns reasoning_content for thinking process
+    if (delta.reasoning_content) {
+      return { type: 'reasoning', text: delta.reasoning_content }
+    }
+
+    // Regular content
+    if (delta.content) {
+      return { type: 'content', text: delta.content }
+    }
+
+    return null
   } catch {
-    return ''
+    return null
   }
 }
 
@@ -126,7 +151,7 @@ async function streamOpenAIResponse(
   }
 
   response.statusCode = 200
-  response.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  response.setHeader('Content-Type', 'text/event-stream')
   response.setHeader('Cache-Control', 'no-cache, no-transform')
   response.setHeader('X-Content-Type-Options', 'nosniff')
 
@@ -145,21 +170,25 @@ async function streamOpenAIResponse(
       buffer = lines.pop() ?? ''
 
       for (const line of lines) {
-        const delta = extractDelta(line.trim())
+        const chunk = extractDelta(line.trim())
 
-        if (delta) {
-          response.write(delta)
+        if (chunk) {
+          // Send as SSE event
+          response.write(`data: ${JSON.stringify(chunk)}\n\n`)
         }
       }
     }
 
     if (buffer) {
-      const delta = extractDelta(buffer.trim())
+      const chunk = extractDelta(buffer.trim())
 
-      if (delta) {
-        response.write(delta)
+      if (chunk) {
+        response.write(`data: ${JSON.stringify(chunk)}\n\n`)
       }
     }
+
+    // Send done event
+    response.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
   } finally {
     reader.releaseLock()
     response.end()

@@ -7,6 +7,18 @@ export type AIStreamMessage = {
   content: string
 }
 
+export interface AIStreamChunk {
+  type: 'reasoning' | 'content' | 'done'
+  text?: string
+}
+
+export interface AIStreamCallbacks {
+  onReasoning?: (text: string) => void
+  onContent?: (text: string) => void
+  onComplete?: (content: string, reasoning: string) => void
+  onError?: (error: Error) => void
+}
+
 export class AIStreamFallbackError extends Error {
   constructor(message = 'AI stream fallback required.') {
     super(message)
@@ -15,7 +27,7 @@ export class AIStreamFallbackError extends Error {
 }
 
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
-const DEFAULT_MODEL = 'deepseek-chat'
+const DEFAULT_MODEL = 'deepseek-reasoner'
 const publicApiKey = import.meta.env.VITE_DEEPSEEK_API_KEY as string | undefined
 const publicModel = import.meta.env.VITE_DEEPSEEK_MODEL || DEFAULT_MODEL
 
@@ -39,6 +51,20 @@ function createChatPayload(message: string, history: AIStreamMessage[]) {
       },
     ],
     stream: true,
+  }
+}
+
+function extractSSEChunk(line: string): AIStreamChunk | null {
+  if (!line.startsWith('data:')) return null
+
+  const data = line.slice(5).trim()
+
+  if (!data) return null
+
+  try {
+    return JSON.parse(data) as AIStreamChunk
+  } catch {
+    return null
   }
 }
 
@@ -93,6 +119,44 @@ async function* streamOpenAIResponse(body: ReadableStream<Uint8Array>) {
 
       if (delta) {
         yield delta
+      }
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}
+
+async function* processSSEStream(
+  body: ReadableStream<Uint8Array>,
+): AsyncGenerator<AIStreamChunk> {
+  const reader = body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+
+      for (const line of lines) {
+        const chunk = extractSSEChunk(line.trim())
+
+        if (chunk) {
+          yield chunk
+        }
+      }
+    }
+
+    if (buffer) {
+      const chunk = extractSSEChunk(buffer.trim())
+
+      if (chunk) {
+        yield chunk
       }
     }
   } finally {
@@ -167,6 +231,39 @@ async function createServerAIResponseStream(
   return streamToGenerator(response.body)
 }
 
+async function createServerAIStreamWithReasoning(
+  message: string,
+  history: AIStreamMessage[],
+) {
+  let response: Response
+
+  try {
+    response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message, history }),
+    })
+  } catch {
+    throw new AIStreamFallbackError()
+  }
+
+  if (shouldFallback(response.status)) {
+    throw new AIStreamFallbackError()
+  }
+
+  if (!response.ok) {
+    throw new Error('AI service is temporarily unavailable.')
+  }
+
+  if (!response.body) {
+    throw new Error('AI service returned an empty response.')
+  }
+
+  return processSSEStream(response.body)
+}
+
 export async function createAIResponseStream(
   message: string,
   history: AIStreamMessage[] = [],
@@ -179,5 +276,37 @@ export async function createAIResponseStream(
     }
 
     throw error
+  }
+}
+
+export async function createAIResponseStreamWithReasoning(
+  message: string,
+  history: AIStreamMessage[] = [],
+  callbacks: AIStreamCallbacks,
+) {
+  let reasoningContent = ''
+  let responseContent = ''
+
+  try {
+    const stream = await createServerAIStreamWithReasoning(message, history)
+
+    for await (const chunk of stream) {
+      if (chunk.type === 'reasoning' && chunk.text) {
+        reasoningContent += chunk.text
+        callbacks.onReasoning?.(reasoningContent)
+      } else if (chunk.type === 'content' && chunk.text) {
+        responseContent += chunk.text
+        callbacks.onContent?.(responseContent)
+      } else if (chunk.type === 'done') {
+        callbacks.onComplete?.(responseContent, reasoningContent)
+      }
+    }
+
+    // Ensure onComplete is called if stream ends without explicit done
+    if (responseContent || reasoningContent) {
+      callbacks.onComplete?.(responseContent, reasoningContent)
+    }
+  } catch (error) {
+    callbacks.onError?.(error as Error)
   }
 }

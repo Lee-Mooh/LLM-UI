@@ -24,12 +24,20 @@ import { mockStream } from '../../utils/stream'
 import {
   AIStreamFallbackError,
   createAIResponseStream,
+  createAIResponseStreamWithReasoning,
   type AIStreamMessage,
 } from './deepseekStream'
 
 type ThemeMode = 'light' | 'dark'
 
 type MessageStore = Record<string, MessageRecord[]>
+
+interface ReasoningState {
+  content: string
+  steps: string[]
+}
+
+type ReasoningStore = Record<string, ReasoningState>
 
 export interface AIConversationDemoProps {
   forceMock?: boolean
@@ -349,6 +357,7 @@ export function AIConversationDemo({
   const [conversations, setConversations] = useState(initialConversations)
   const [messagesByConversation, setMessagesByConversation] =
     useState<MessageStore>(initialMessages)
+  const [reasoningStore, setReasoningStore] = useState<ReasoningStore>({})
   const [composerValue, setComposerValue] = useState('')
   const [streamingTarget, setStreamingTarget] = useState<{
     conversationId: string
@@ -537,37 +546,130 @@ export function AIConversationDemo({
     }
 
     setStreamingTarget(nextStreamingTarget)
-    void createDemoResponseStream(
-      message,
-      createAIHistory(activeMessages),
-      forceMock,
-    )
-      .then((generator) =>
-        start(generator, {
-          onComplete: (nextContent) => {
-            setMessagesByConversation((items) =>
-              updateConversationMessage(
-                items,
-                nextStreamingTarget.conversationId,
-                nextStreamingTarget.messageId,
-                { content: nextContent, loading: false },
-              ),
-            )
-            setConversations((items) =>
-              items.map((conversation) =>
-                conversation.id === nextStreamingTarget.conversationId
-                  ? {
-                      ...conversation,
-                      lastMessage: nextContent.slice(0, 42),
-                      timestamp: getCurrentTime(),
-                    }
-                  : conversation,
-              ),
-            )
-            setStreamingTarget(null)
-            pushNotification('success', '回复已完成')
+
+    // Try reasoning stream first (for DeepSeek R1)
+    const history = createAIHistory(activeMessages)
+
+    createAIResponseStreamWithReasoning(message, history, {
+      onReasoning: (reasoningText) => {
+        // Parse reasoning into steps
+        const steps = reasoningText
+          .split('\n')
+          .filter((line) => line.trim().length > 0)
+          .slice(-5) // Keep last 5 steps
+
+        setReasoningStore((store) => ({
+          ...store,
+          [assistantMessageId]: {
+            content: reasoningText,
+            steps,
           },
-          onError: () => {
+        }))
+      },
+      onContent: (content) => {
+        setMessagesByConversation((items) =>
+          updateConversationMessage(
+            items,
+            nextStreamingTarget.conversationId,
+            nextStreamingTarget.messageId,
+            { content, loading: true },
+          ),
+        )
+      },
+      onComplete: (content, reasoning) => {
+        setMessagesByConversation((items) =>
+          updateConversationMessage(
+            items,
+            nextStreamingTarget.conversationId,
+            nextStreamingTarget.messageId,
+            { content, loading: false },
+          ),
+        )
+        setConversations((items) =>
+          items.map((conversation) =>
+            conversation.id === nextStreamingTarget.conversationId
+              ? {
+                  ...conversation,
+                  lastMessage: content.slice(0, 42),
+                  timestamp: getCurrentTime(),
+                }
+              : conversation,
+          ),
+        )
+        setStreamingTarget(null)
+
+        if (reasoning) {
+          const steps = reasoning
+            .split('\n')
+            .filter((line) => line.trim().length > 0)
+
+          setReasoningStore((store) => ({
+            ...store,
+            [assistantMessageId]: {
+              content: reasoning,
+              steps,
+            },
+          }))
+        }
+
+        pushNotification('success', '回复已完成')
+      },
+      onError: () => {
+        // Fallback to regular stream
+        void createDemoResponseStream(message, history, forceMock)
+          .then((generator) =>
+            start(generator, {
+              onComplete: (nextContent) => {
+                setMessagesByConversation((items) =>
+                  updateConversationMessage(
+                    items,
+                    nextStreamingTarget.conversationId,
+                    nextStreamingTarget.messageId,
+                    { content: nextContent, loading: false },
+                  ),
+                )
+                setConversations((items) =>
+                  items.map((conversation) =>
+                    conversation.id === nextStreamingTarget.conversationId
+                      ? {
+                          ...conversation,
+                          lastMessage: nextContent.slice(0, 42),
+                          timestamp: getCurrentTime(),
+                        }
+                      : conversation,
+                  ),
+                )
+                setStreamingTarget(null)
+                pushNotification('success', '回复已完成')
+              },
+              onError: () => {
+                setMessagesByConversation((items) =>
+                  updateConversationMessage(
+                    items,
+                    nextStreamingTarget.conversationId,
+                    nextStreamingTarget.messageId,
+                    {
+                      content: '抱歉，在线 AI 服务暂时不可用，请稍后再试。',
+                      loading: false,
+                    },
+                  ),
+                )
+                setStreamingTarget(null)
+                pushNotification('error', '生成失败，请稍后重试')
+              },
+              onToken: (nextContent) => {
+                setMessagesByConversation((items) =>
+                  updateConversationMessage(
+                    items,
+                    nextStreamingTarget.conversationId,
+                    nextStreamingTarget.messageId,
+                    { content: nextContent, loading: true },
+                  ),
+                )
+              },
+            }),
+          )
+          .catch(() => {
             setMessagesByConversation((items) =>
               updateConversationMessage(
                 items,
@@ -581,34 +683,23 @@ export function AIConversationDemo({
             )
             setStreamingTarget(null)
             pushNotification('error', '生成失败，请稍后重试')
+          })
+      },
+    }).catch(() => {
+      setMessagesByConversation((items) =>
+        updateConversationMessage(
+          items,
+          nextStreamingTarget.conversationId,
+          nextStreamingTarget.messageId,
+          {
+            content: '抱歉，在线 AI 服务暂时不可用，请稍后再试。',
+            loading: false,
           },
-          onToken: (nextContent) => {
-            setMessagesByConversation((items) =>
-              updateConversationMessage(
-                items,
-                nextStreamingTarget.conversationId,
-                nextStreamingTarget.messageId,
-                { content: nextContent, loading: true },
-              ),
-            )
-          },
-        }),
+        ),
       )
-      .catch(() => {
-        setMessagesByConversation((items) =>
-          updateConversationMessage(
-            items,
-            nextStreamingTarget.conversationId,
-            nextStreamingTarget.messageId,
-            {
-              content: '抱歉，在线 AI 服务暂时不可用，请稍后再试。',
-              loading: false,
-            },
-          ),
-        )
-        setStreamingTarget(null)
-        pushNotification('error', '生成失败，请稍后重试')
-      })
+      setStreamingTarget(null)
+      pushNotification('error', '生成失败，请稍后重试')
+    })
   }
 
   const handleThemeModeChange = (nextMode: ThemeMode) => {
@@ -650,19 +741,66 @@ export function AIConversationDemo({
   }
 
   const renderAssistantAddons = (message: MessageRecord) => {
-    if (message.loading) {
+    const reasoning = reasoningStore[message.id]
+
+    // Show real reasoning from AI if available
+    if (reasoning && reasoning.steps.length > 0) {
+      const thoughtItems: ThoughtItem[] = reasoning.steps.map(
+        (step, index) => ({
+          key: `step-${index}`,
+          title: `步骤 ${index + 1}`,
+          status: message.loading ? 'loading' : 'success',
+          content: step,
+          collapsible: true,
+          defaultOpen: message.loading && index === reasoning.steps.length - 1,
+        }),
+      )
+
       return (
         <div className="llm-demo-chat__message-addons">
-          <Think content="正在阅读当前会话，并把回复拆成可以执行的步骤。" />
+          <Think
+            content={
+              reasoning.content.slice(0, 200) +
+              (reasoning.content.length > 200 ? '...' : '')
+            }
+            status={message.loading ? 'thinking' : 'done'}
+          />
           <Thought
             compact
-            defaultExpandedKeys={['answer']}
-            items={createReasoningItems(true)}
+            defaultExpandedKeys={
+              message.loading
+                ? [`step-${reasoning.steps.length - 1}`]
+                : undefined
+            }
+            items={thoughtItems}
+            title="推理过程"
           />
         </div>
       )
     }
 
+    // Loading state without reasoning yet
+    if (message.loading) {
+      return (
+        <div className="llm-demo-chat__message-addons">
+          <Think content="正在分析问题，准备生成回复..." />
+          <Thought
+            compact
+            defaultExpandedKeys={['thinking']}
+            items={[
+              {
+                key: 'thinking',
+                title: 'AI 正在思考',
+                status: 'loading',
+                content: '正在调用模型进行推理...',
+              },
+            ]}
+          />
+        </div>
+      )
+    }
+
+    // Historical messages with static addons
     if (message.id === 'release-assistant-1') {
       return (
         <div className="llm-demo-chat__message-addons">

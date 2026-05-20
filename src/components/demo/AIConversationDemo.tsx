@@ -32,9 +32,19 @@ type ThemeMode = 'light' | 'dark'
 
 type MessageStore = Record<string, MessageRecord[]>
 
+type ReasoningPhase =
+  | 'connecting'
+  | 'reasoning'
+  | 'responding'
+  | 'done'
+  | 'error'
+
 interface ReasoningState {
   content: string
   steps: string[]
+  phase: ReasoningPhase
+  responsePreview?: string
+  hasReasoningContent?: boolean
 }
 
 type ReasoningStore = Record<string, ReasoningState>
@@ -296,6 +306,34 @@ function createAIHistory(messages: MessageRecord[]): AIStreamMessage[] {
     .slice(-10)
 }
 
+function parseReasoningSteps(content: string) {
+  return content
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(-5)
+}
+
+function patchReasoningState(
+  store: ReasoningStore,
+  messageId: string,
+  patch: Partial<ReasoningState>,
+): ReasoningStore {
+  const current = store[messageId] ?? {
+    content: '',
+    steps: [],
+    phase: 'connecting',
+  }
+
+  return {
+    ...store,
+    [messageId]: {
+      ...current,
+      ...patch,
+    },
+  }
+}
+
 async function createDemoResponseStream(
   message: string,
   history: AIStreamMessage[],
@@ -546,34 +584,46 @@ export function AIConversationDemo({
     }
 
     setStreamingTarget(nextStreamingTarget)
+    setReasoningStore((store) =>
+      patchReasoningState(store, assistantMessageId, {
+        content: '',
+        steps: [],
+        phase: 'connecting',
+      }),
+    )
 
-    // Try reasoning stream first (for DeepSeek R1)
     const history = createAIHistory(activeMessages)
+    let hasReasoningContent = false
 
     createAIResponseStreamWithReasoning(message, history, {
       onReasoning: (reasoningText) => {
-        // Parse reasoning into steps
-        const steps = reasoningText
-          .split('\n')
-          .filter((line) => line.trim().length > 0)
-          .slice(-5) // Keep last 5 steps
-
-        setReasoningStore((store) => ({
-          ...store,
-          [assistantMessageId]: {
+        hasReasoningContent = true
+        setReasoningStore((store) =>
+          patchReasoningState(store, assistantMessageId, {
             content: reasoningText,
-            steps,
-          },
-        }))
+            steps: parseReasoningSteps(reasoningText),
+            phase: 'reasoning',
+            hasReasoningContent: true,
+          }),
+        )
       },
       onContent: (content) => {
-        setMessagesByConversation((items) =>
-          updateConversationMessage(
-            items,
-            nextStreamingTarget.conversationId,
-            nextStreamingTarget.messageId,
-            { content, loading: true },
-          ),
+        if (hasReasoningContent) {
+          setMessagesByConversation((items) =>
+            updateConversationMessage(
+              items,
+              nextStreamingTarget.conversationId,
+              nextStreamingTarget.messageId,
+              { content, loading: true },
+            ),
+          )
+        }
+
+        setReasoningStore((store) =>
+          patchReasoningState(store, assistantMessageId, {
+            phase: hasReasoningContent ? 'responding' : 'reasoning',
+            responsePreview: content,
+          }),
         )
       },
       onComplete: (content, reasoning) => {
@@ -597,20 +647,14 @@ export function AIConversationDemo({
           ),
         )
         setStreamingTarget(null)
-
-        if (reasoning) {
-          const steps = reasoning
-            .split('\n')
-            .filter((line) => line.trim().length > 0)
-
-          setReasoningStore((store) => ({
-            ...store,
-            [assistantMessageId]: {
-              content: reasoning,
-              steps,
-            },
-          }))
-        }
+        setReasoningStore((store) =>
+          patchReasoningState(store, assistantMessageId, {
+            content: reasoning,
+            steps: reasoning ? parseReasoningSteps(reasoning) : [],
+            phase: 'done',
+            responsePreview: content,
+          }),
+        )
 
         pushNotification('success', '回复已完成')
       },
@@ -619,6 +663,23 @@ export function AIConversationDemo({
         void createDemoResponseStream(message, history, forceMock)
           .then((generator) =>
             start(generator, {
+              onToken: (nextContent) => {
+                setReasoningStore((store) => {
+                  const current = store[assistantMessageId]
+
+                  if (current?.phase !== 'responding') {
+                    return patchReasoningState(store, assistantMessageId, {
+                      phase: 'reasoning',
+                      responsePreview: nextContent,
+                    })
+                  }
+
+                  return patchReasoningState(store, assistantMessageId, {
+                    phase: 'responding',
+                    responsePreview: nextContent,
+                  })
+                })
+              },
               onComplete: (nextContent) => {
                 setMessagesByConversation((items) =>
                   updateConversationMessage(
@@ -640,6 +701,12 @@ export function AIConversationDemo({
                   ),
                 )
                 setStreamingTarget(null)
+                setReasoningStore((store) =>
+                  patchReasoningState(store, assistantMessageId, {
+                    phase: 'done',
+                    responsePreview: nextContent,
+                  }),
+                )
                 pushNotification('success', '回复已完成')
               },
               onError: () => {
@@ -655,17 +722,12 @@ export function AIConversationDemo({
                   ),
                 )
                 setStreamingTarget(null)
-                pushNotification('error', '生成失败，请稍后重试')
-              },
-              onToken: (nextContent) => {
-                setMessagesByConversation((items) =>
-                  updateConversationMessage(
-                    items,
-                    nextStreamingTarget.conversationId,
-                    nextStreamingTarget.messageId,
-                    { content: nextContent, loading: true },
-                  ),
+                setReasoningStore((store) =>
+                  patchReasoningState(store, assistantMessageId, {
+                    phase: 'error',
+                  }),
                 )
+                pushNotification('error', '生成失败，请稍后重试')
               },
             }),
           )
@@ -743,61 +805,107 @@ export function AIConversationDemo({
   const renderAssistantAddons = (message: MessageRecord) => {
     const reasoning = reasoningStore[message.id]
 
-    if (reasoning && reasoning.steps.length > 0) {
-      const thoughtItems: ThoughtItem[] = reasoning.steps.map(
-        (step, index) => ({
-          key: `step-${index}`,
-          title: message.loading ? '回复中' : `步骤 ${index + 1}`,
-          status: message.loading ? 'loading' : 'success',
-          content: step,
-          collapsible: true,
-          defaultOpen: message.loading && index === reasoning.steps.length - 1,
-        }),
-      )
+    if (reasoning) {
+      const hasReasoningSteps = reasoning.steps.length > 0
+      const thinkContent =
+        reasoning.content ||
+        (reasoning.phase === 'done'
+          ? '已完成回复组织。'
+          : reasoning.responsePreview ||
+            (reasoning.phase === 'connecting'
+              ? '正在连接模型，等待推理片段返回。'
+              : '正在整理回复内容。'))
+      const thoughtItems: ThoughtItem[] = hasReasoningSteps
+        ? reasoning.steps.map((step, index) => ({
+            key: `step-${index}`,
+            title:
+              reasoning.phase === 'reasoning'
+                ? `推理片段 ${index + 1}`
+                : `步骤 ${index + 1}`,
+            status:
+              message.loading && index === reasoning.steps.length - 1
+                ? 'loading'
+                : 'success',
+            content: step,
+            collapsible: true,
+            defaultOpen:
+              message.loading && index === reasoning.steps.length - 1,
+          }))
+        : [
+            {
+              key: 'connect',
+              title: '连接模型',
+              status:
+                reasoning.phase === 'connecting'
+                  ? 'loading'
+                  : reasoning.phase === 'error'
+                    ? 'error'
+                    : 'success',
+              content: '已向服务端发送请求，等待模型返回流式事件。',
+            },
+            {
+              key: 'reason',
+              title: '组织回复',
+              status:
+                reasoning.phase === 'reasoning'
+                  ? 'loading'
+                  : reasoning.phase === 'responding' ||
+                      reasoning.phase === 'done'
+                    ? 'success'
+                    : reasoning.phase === 'error'
+                      ? 'error'
+                      : 'pending',
+              content:
+                reasoning.responsePreview || '正在等待模型生成可用内容。',
+            },
+            {
+              key: 'respond',
+              title: '生成回复',
+              status:
+                reasoning.phase === 'responding'
+                  ? 'loading'
+                  : reasoning.phase === 'done'
+                    ? 'success'
+                    : reasoning.phase === 'error'
+                      ? 'error'
+                      : 'pending',
+              content:
+                reasoning.responsePreview || '等待思考完成后开始输出正文。',
+            },
+          ]
 
       return (
         <div className="llm-demo-chat__message-addons">
-          {message.loading ? (
-            <Think
-              content={
-                reasoning.content.slice(0, 200) +
-                (reasoning.content.length > 200 ? '...' : '')
-              }
-              label="回复中"
-            />
-          ) : null}
+          <Think
+            content={thinkContent}
+            label={
+              reasoning.phase === 'responding' || reasoning.phase === 'done'
+                ? '已完成'
+                : '回复中'
+            }
+            status={
+              reasoning.phase === 'responding' || reasoning.phase === 'done'
+                ? 'done'
+                : 'thinking'
+            }
+          />
           <Thought
             compact
             defaultExpandedKeys={
               message.loading
-                ? [`step-${reasoning.steps.length - 1}`]
+                ? [
+                    hasReasoningSteps
+                      ? `step-${reasoning.steps.length - 1}`
+                      : reasoning.phase === 'responding'
+                        ? 'respond'
+                        : reasoning.phase === 'reasoning'
+                          ? 'reason'
+                          : 'connect',
+                  ]
                 : undefined
             }
             items={thoughtItems}
-            title={message.loading ? '回复进度' : '推理过程'}
-          />
-        </div>
-      )
-    }
-
-    if (message.loading) {
-      const replyDraft = message.content?.trim()
-      const liveContent = replyDraft || '正在连接模型并生成回复...'
-
-      return (
-        <div className="llm-demo-chat__message-addons">
-          <Think content={liveContent} label="回复中" />
-          <Thought
-            compact
-            defaultExpandedKeys={['replying']}
-            items={[
-              {
-                key: 'replying',
-                title: '回复中',
-                status: 'loading',
-                content: liveContent,
-              },
-            ]}
+            title={hasReasoningSteps ? '推理链' : '生成链路'}
           />
         </div>
       )
@@ -900,11 +1008,13 @@ export function AIConversationDemo({
                 >
                   {message.role === 'assistant' ? (
                     <div className="llm-demo-chat__assistant-content">
-                      <Mark
-                        content={message.content ?? ''}
-                        streaming={message.loading}
-                      />
                       {renderAssistantAddons(message)}
+                      {message.content ? (
+                        <Mark
+                          content={message.content}
+                          streaming={message.loading}
+                        />
+                      ) : null}
                     </div>
                   ) : (
                     message.content

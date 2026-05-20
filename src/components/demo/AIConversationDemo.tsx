@@ -781,9 +781,12 @@ export function AIConversationDemo({
     }
 
     if (message.loading) {
+      const replyDraft = message.content?.trim()
+      const liveContent = replyDraft || '正在连接模型并生成回复...'
+
       return (
         <div className="llm-demo-chat__message-addons">
-          <Think content="正在组织回复内容..." label="回复中" />
+          <Think content={liveContent} label="回复中" />
           <Thought
             compact
             defaultExpandedKeys={['replying']}
@@ -792,7 +795,7 @@ export function AIConversationDemo({
                 key: 'replying',
                 title: '回复中',
                 status: 'loading',
-                content: '正在连接模型并生成回复...',
+                content: liveContent,
               },
             ]}
           />

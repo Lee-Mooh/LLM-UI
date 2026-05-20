@@ -314,6 +314,10 @@ function parseReasoningSteps(content: string) {
     .slice(-5)
 }
 
+function stripHiddenReasoning(content: string) {
+  return splitInlineThink(content, true).answer.trimStart()
+}
+
 function patchReasoningState(
   store: ReasoningStore,
   messageId: string,
@@ -335,16 +339,27 @@ function patchReasoningState(
 }
 
 function splitInlineThink(content: string, finalize = false) {
-  const openTag = '<think>'
-  const closeTag = '</think>'
-  const openIndex = content.indexOf(openTag)
+  const thinkOpenTag = '<think>'
+  const thinkCloseTag = '</think>'
+  const htmlCommentOpenTag = '<!--'
+  const htmlCommentCloseTag = '-->'
 
-  if (openIndex === -1) {
+  const openIndex = content.indexOf(thinkOpenTag)
+  const commentIndex = content.indexOf(htmlCommentOpenTag)
+  const commentStartIndex =
+    commentIndex !== -1 && (openIndex === -1 || commentIndex < openIndex)
+      ? commentIndex
+      : openIndex
+
+  if (commentStartIndex === -1) {
     return { answer: content, done: true, thought: '' }
   }
 
-  const beforeThink = content.slice(0, openIndex)
-  const afterOpen = content.slice(openIndex + openTag.length)
+  const isHtmlComment = commentStartIndex === commentIndex
+  const openTag = isHtmlComment ? htmlCommentOpenTag : thinkOpenTag
+  const closeTag = isHtmlComment ? htmlCommentCloseTag : thinkCloseTag
+  const beforeThink = content.slice(0, commentStartIndex)
+  const afterOpen = content.slice(commentStartIndex + openTag.length)
   const closeIndex = afterOpen.indexOf(closeTag)
 
   if (closeIndex === -1) {
@@ -778,7 +793,7 @@ export function AIConversationDemo({
         const finalInlineThink = splitInlineThink(content, true)
         const finalAnswer = hasReasoningContent
           ? content
-          : finalInlineThink.answer.trimStart()
+          : stripHiddenReasoning(finalInlineThink.answer)
         const finalThought = hasReasoningContent
           ? reasoning
           : finalInlineThink.thought
@@ -841,7 +856,7 @@ export function AIConversationDemo({
                 if (!isActiveRequest()) return
 
                 const inlineThink = splitInlineThink(nextContent, true)
-                const finalAnswer = inlineThink.answer.trimStart()
+                const finalAnswer = stripHiddenReasoning(inlineThink.answer)
                 const finalThought = inlineThink.thought
 
                 if (!answerStarted) {

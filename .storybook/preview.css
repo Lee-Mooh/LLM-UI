@@ -71,14 +71,14 @@ body,
   color: inherit;
 }
 
-.sbdocs-preview button,
+.sbdocs-preview > div:first-child button,
 .docblock-argstable button {
   color: var(--llm-color-text-muted) !important;
   border-color: var(--llm-color-border) !important;
   background: transparent !important;
 }
 
-.sbdocs-preview button:hover,
+.sbdocs-preview > div:first-child button:hover,
 .docblock-argstable button:hover {
   color: var(--llm-color-text) !important;
   background: var(--llm-color-muted) !important;

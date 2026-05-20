@@ -303,7 +303,7 @@ function createAIHistory(messages: MessageRecord[]): AIStreamMessage[] {
       role: message.role as AIStreamMessage['role'],
       content: message.content?.trim() ?? '',
     }))
-    .slice(-10)
+    .slice(-4)
 }
 
 function parseReasoningSteps(content: string) {
@@ -334,7 +334,7 @@ function patchReasoningState(
   }
 }
 
-function splitInlineThink(content: string) {
+function splitInlineThink(content: string, finalize = false) {
   const openTag = '<think>'
   const closeTag = '</think>'
   const openIndex = content.indexOf(openTag)
@@ -348,11 +348,17 @@ function splitInlineThink(content: string) {
   const closeIndex = afterOpen.indexOf(closeTag)
 
   if (closeIndex === -1) {
-    return {
-      answer: beforeThink,
-      done: false,
-      thought: afterOpen,
-    }
+    return finalize
+      ? {
+          answer: beforeThink,
+          done: true,
+          thought: afterOpen,
+        }
+      : {
+          answer: beforeThink,
+          done: false,
+          thought: afterOpen,
+        }
   }
 
   return {
@@ -445,6 +451,7 @@ export function AIConversationDemo({
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const messagesViewportRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<HTMLDivElement>(null)
+  const requestSeqRef = useRef(0)
   const { state, start, cancel } = useStream()
   const activeMessages = useMemo(
     () => messagesByConversation[activeConversationId] ?? [],
@@ -634,13 +641,16 @@ export function AIConversationDemo({
     )
 
     const history = createAIHistory(activeMessages)
+    const requestId = ++requestSeqRef.current
     let hasReasoningContent = false
     let hasInlineThink = false
     let answerStarted = false
     let completed = false
 
+    const isActiveRequest = () => requestSeqRef.current === requestId
+
     const completeReply = (content: string, thought?: string) => {
-      if (completed) return
+      if (completed || !isActiveRequest()) return
 
       completed = true
       setMessagesByConversation((items) =>
@@ -678,6 +688,8 @@ export function AIConversationDemo({
 
     createAIResponseStreamWithReasoning(message, history, {
       onReasoning: (reasoningText) => {
+        if (!isActiveRequest()) return
+
         hasReasoningContent = true
         setReasoningStore((store) =>
           patchReasoningState(store, assistantMessageId, {
@@ -689,6 +701,8 @@ export function AIConversationDemo({
         )
       },
       onContent: (content) => {
+        if (!isActiveRequest()) return
+
         if (hasReasoningContent) {
           answerStarted = true
           setMessagesByConversation((items) =>
@@ -737,7 +751,9 @@ export function AIConversationDemo({
         )
       },
       onComplete: (content, reasoning) => {
-        const finalInlineThink = splitInlineThink(content)
+        if (!isActiveRequest()) return
+
+        const finalInlineThink = splitInlineThink(content, true)
         const finalAnswer = hasReasoningContent
           ? content
           : finalInlineThink.answer.trimStart()
@@ -785,6 +801,8 @@ export function AIConversationDemo({
           .then((generator) =>
             start(generator, {
               onToken: (nextContent) => {
+                if (!isActiveRequest()) return
+
                 const inlineThink = splitInlineThink(nextContent)
 
                 if (inlineThink.done) {
@@ -810,7 +828,9 @@ export function AIConversationDemo({
                 )
               },
               onComplete: (nextContent) => {
-                const inlineThink = splitInlineThink(nextContent)
+                if (!isActiveRequest()) return
+
+                const inlineThink = splitInlineThink(nextContent, true)
                 const finalAnswer = inlineThink.answer.trimStart()
                 const finalThought = inlineThink.thought
 
@@ -912,6 +932,7 @@ export function AIConversationDemo({
   }
 
   const handleCancel = () => {
+    requestSeqRef.current += 1
     cancel()
 
     if (!streamingTarget) return

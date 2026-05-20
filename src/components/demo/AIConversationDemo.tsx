@@ -636,6 +636,45 @@ export function AIConversationDemo({
     const history = createAIHistory(activeMessages)
     let hasReasoningContent = false
     let hasInlineThink = false
+    let answerStarted = false
+    let completed = false
+
+    const completeReply = (content: string, thought?: string) => {
+      if (completed) return
+
+      completed = true
+      setMessagesByConversation((items) =>
+        updateConversationMessage(
+          items,
+          nextStreamingTarget.conversationId,
+          nextStreamingTarget.messageId,
+          { content, loading: false },
+        ),
+      )
+      setConversations((items) =>
+        items.map((conversation) =>
+          conversation.id === nextStreamingTarget.conversationId
+            ? {
+                ...conversation,
+                lastMessage: content.slice(0, 42),
+                timestamp: getCurrentTime(),
+              }
+            : conversation,
+        ),
+      )
+      setStreamingTarget(null)
+      setReasoningStore((store) =>
+        patchReasoningState(store, assistantMessageId, {
+          content: thought ?? store[assistantMessageId]?.content ?? '',
+          steps: thought
+            ? parseReasoningSteps(thought)
+            : (store[assistantMessageId]?.steps ?? []),
+          phase: 'done',
+          responsePreview: content,
+        }),
+      )
+      pushNotification('success', '回复已完成')
+    }
 
     createAIResponseStreamWithReasoning(message, history, {
       onReasoning: (reasoningText) => {
@@ -651,6 +690,7 @@ export function AIConversationDemo({
       },
       onContent: (content) => {
         if (hasReasoningContent) {
+          answerStarted = true
           setMessagesByConversation((items) =>
             updateConversationMessage(
               items,
@@ -674,6 +714,7 @@ export function AIConversationDemo({
         hasInlineThink = hasInlineThink || Boolean(inlineThink.thought)
 
         if (hasInlineThink && inlineThink.done) {
+          answerStarted = true
           setMessagesByConversation((items) =>
             updateConversationMessage(
               items,
@@ -704,36 +745,8 @@ export function AIConversationDemo({
           ? reasoning
           : finalInlineThink.thought
 
-        if (hasReasoningContent) {
-          setMessagesByConversation((items) =>
-            updateConversationMessage(
-              items,
-              nextStreamingTarget.conversationId,
-              nextStreamingTarget.messageId,
-              { content: finalAnswer, loading: false },
-            ),
-          )
-          setConversations((items) =>
-            items.map((conversation) =>
-              conversation.id === nextStreamingTarget.conversationId
-                ? {
-                    ...conversation,
-                    lastMessage: finalAnswer.slice(0, 42),
-                    timestamp: getCurrentTime(),
-                  }
-                : conversation,
-            ),
-          )
-          setStreamingTarget(null)
-          setReasoningStore((store) =>
-            patchReasoningState(store, assistantMessageId, {
-              content: finalThought,
-              steps: finalThought ? parseReasoningSteps(finalThought) : [],
-              phase: 'done',
-              responsePreview: finalAnswer,
-            }),
-          )
-          pushNotification('success', '回复已完成')
+        if (answerStarted) {
+          completeReply(finalAnswer, finalThought)
           return
         }
 
@@ -755,6 +768,7 @@ export function AIConversationDemo({
           }),
         )
         void streamReplyText(finalAnswer, (nextContent) => {
+          answerStarted = true
           setMessagesByConversation((items) =>
             updateConversationMessage(
               items,
@@ -763,35 +777,7 @@ export function AIConversationDemo({
               { content: nextContent, loading: true },
             ),
           )
-        }).then(() => {
-          setMessagesByConversation((items) =>
-            updateConversationMessage(
-              items,
-              nextStreamingTarget.conversationId,
-              nextStreamingTarget.messageId,
-              { content: finalAnswer, loading: false },
-            ),
-          )
-          setConversations((items) =>
-            items.map((conversation) =>
-              conversation.id === nextStreamingTarget.conversationId
-                ? {
-                    ...conversation,
-                    lastMessage: finalAnswer.slice(0, 42),
-                    timestamp: getCurrentTime(),
-                  }
-                : conversation,
-            ),
-          )
-          setStreamingTarget(null)
-          setReasoningStore((store) =>
-            patchReasoningState(store, assistantMessageId, {
-              phase: 'done',
-              responsePreview: finalAnswer,
-            }),
-          )
-          pushNotification('success', '回复已完成')
-        })
+        }).then(() => completeReply(finalAnswer, finalThought))
       },
       onError: () => {
         // Fallback to regular stream
@@ -800,6 +786,18 @@ export function AIConversationDemo({
             start(generator, {
               onToken: (nextContent) => {
                 const inlineThink = splitInlineThink(nextContent)
+
+                if (inlineThink.done) {
+                  answerStarted = true
+                  setMessagesByConversation((items) =>
+                    updateConversationMessage(
+                      items,
+                      nextStreamingTarget.conversationId,
+                      nextStreamingTarget.messageId,
+                      { content: inlineThink.answer, loading: true },
+                    ),
+                  )
+                }
 
                 setReasoningStore((store) =>
                   patchReasoningState(store, assistantMessageId, {
@@ -815,6 +813,11 @@ export function AIConversationDemo({
                 const inlineThink = splitInlineThink(nextContent)
                 const finalAnswer = inlineThink.answer.trimStart()
                 const finalThought = inlineThink.thought
+
+                if (answerStarted) {
+                  completeReply(finalAnswer, finalThought)
+                  return
+                }
 
                 setMessagesByConversation((items) =>
                   updateConversationMessage(
@@ -836,6 +839,7 @@ export function AIConversationDemo({
                   }),
                 )
                 void streamReplyText(finalAnswer, (streamedContent) => {
+                  answerStarted = true
                   setMessagesByConversation((items) =>
                     updateConversationMessage(
                       items,
@@ -844,35 +848,7 @@ export function AIConversationDemo({
                       { content: streamedContent, loading: true },
                     ),
                   )
-                }).then(() => {
-                  setMessagesByConversation((items) =>
-                    updateConversationMessage(
-                      items,
-                      nextStreamingTarget.conversationId,
-                      nextStreamingTarget.messageId,
-                      { content: finalAnswer, loading: false },
-                    ),
-                  )
-                  setConversations((items) =>
-                    items.map((conversation) =>
-                      conversation.id === nextStreamingTarget.conversationId
-                        ? {
-                            ...conversation,
-                            lastMessage: finalAnswer.slice(0, 42),
-                            timestamp: getCurrentTime(),
-                          }
-                        : conversation,
-                    ),
-                  )
-                  setStreamingTarget(null)
-                  setReasoningStore((store) =>
-                    patchReasoningState(store, assistantMessageId, {
-                      phase: 'done',
-                      responsePreview: finalAnswer,
-                    }),
-                  )
-                  pushNotification('success', '回复已完成')
-                })
+                }).then(() => completeReply(finalAnswer, finalThought))
               },
               onError: () => {
                 setMessagesByConversation((items) =>

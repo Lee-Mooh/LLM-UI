@@ -286,6 +286,7 @@ export async function createAIResponseStreamWithReasoning(
 ) {
   let reasoningContent = ''
   let responseContent = ''
+  let completed = false
 
   try {
     const stream = await createServerAIStreamWithReasoning(message, history)
@@ -298,12 +299,12 @@ export async function createAIResponseStreamWithReasoning(
         responseContent += chunk.text
         callbacks.onContent?.(responseContent)
       } else if (chunk.type === 'done') {
+        completed = true
         callbacks.onComplete?.(responseContent, reasoningContent)
       }
     }
 
-    // Ensure onComplete is called if stream ends without explicit done
-    if (responseContent || reasoningContent) {
+    if (!completed && (responseContent || reasoningContent)) {
       callbacks.onComplete?.(responseContent, reasoningContent)
     }
   } catch (error) {

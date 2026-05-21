@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 
 import { Actions } from '../actions/Actions'
 import { createPresetActions } from '../actions/ActionsPreset'
@@ -30,7 +30,24 @@ import {
 
 type ThemeMode = 'light' | 'dark'
 
-type MessageStore = Record<string, MessageRecord[]>
+type AttachmentKind = 'file' | 'image'
+
+interface DemoAttachment {
+  id: string
+  name: string
+  size: number
+  type: string
+  kind: AttachmentKind
+  url?: string
+  textExcerpt?: string
+  truncated?: boolean
+}
+
+type DemoMessageRecord = MessageRecord & {
+  attachments?: DemoAttachment[]
+}
+
+type MessageStore = Record<string, DemoMessageRecord[]>
 
 type ReasoningPhase =
   | 'connecting'
@@ -48,6 +65,51 @@ interface ReasoningState {
 }
 
 type ReasoningStore = Record<string, ReasoningState>
+
+interface SpeechRecognitionResultAlternativeLike {
+  transcript: string
+}
+
+interface SpeechRecognitionResultLike {
+  readonly isFinal: boolean
+  readonly length: number
+  item(index: number): SpeechRecognitionResultAlternativeLike
+  [index: number]: SpeechRecognitionResultAlternativeLike | undefined
+}
+
+interface SpeechRecognitionResultListLike {
+  readonly length: number
+  item(index: number): SpeechRecognitionResultLike
+  [index: number]: SpeechRecognitionResultLike | undefined
+}
+
+interface SpeechRecognitionEventLike extends Event {
+  readonly resultIndex: number
+  readonly results: SpeechRecognitionResultListLike
+}
+
+interface SpeechRecognitionErrorEventLike extends Event {
+  readonly error?: string
+}
+
+interface SpeechRecognitionLike {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null
+  onend: (() => void) | null
+  start: () => void
+  stop: () => void
+  abort: () => void
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
+
+interface SpeechRecognitionWindow extends Window {
+  SpeechRecognition?: SpeechRecognitionConstructor
+  webkitSpeechRecognition?: SpeechRecognitionConstructor
+}
 
 export interface AIConversationDemoProps {
   forceMock?: boolean
@@ -154,6 +216,10 @@ const assistantActions = createPresetActions([
   'polish',
 ])
 
+const maxPendingAttachments = 6
+const maxAttachmentSize = 10 * 1024 * 1024
+const maxTextExcerptSize = 128 * 1024
+
 const releaseCitations: CitationItem[] = [
   {
     key: 'release-note',
@@ -177,6 +243,189 @@ function ChatSurface() {
     </>
   )
 }`
+
+function formatFileSize(size: number) {
+  if (size < 1024) return `${size} B`
+
+  const units = ['KB', 'MB', 'GB']
+  let value = size / 1024
+  let unitIndex = 0
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024
+    unitIndex += 1
+  }
+
+  return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex] ?? 'GB'}`
+}
+
+function isImageFile(file: File) {
+  return file.type.startsWith('image/')
+}
+
+function isReadableTextFile(file: File) {
+  const extension = file.name.split('.').pop()?.toLowerCase()
+  const textExtensions = new Set([
+    'css',
+    'csv',
+    'html',
+    'js',
+    'json',
+    'jsx',
+    'log',
+    'md',
+    'mdx',
+    'py',
+    'sql',
+    'ts',
+    'tsx',
+    'txt',
+    'xml',
+    'yaml',
+    'yml',
+  ])
+
+  return (
+    file.type.startsWith('text/') ||
+    Boolean(extension && textExtensions.has(extension))
+  )
+}
+
+async function createAttachmentFromFile(
+  file: File,
+  kind: AttachmentKind,
+): Promise<DemoAttachment> {
+  const attachment: DemoAttachment = {
+    id: createMessageId('attachment'),
+    name: file.name,
+    size: file.size,
+    type: file.type || '未知类型',
+    kind,
+  }
+
+  if (kind === 'image' || isImageFile(file)) {
+    return {
+      ...attachment,
+      kind: 'image',
+      url: URL.createObjectURL(file),
+    }
+  }
+
+  if (!isReadableTextFile(file)) return attachment
+
+  const excerpt = await file.slice(0, maxTextExcerptSize).text()
+
+  return {
+    ...attachment,
+    textExcerpt: excerpt,
+    truncated: file.size > maxTextExcerptSize,
+  }
+}
+
+function buildAttachmentPrompt(attachments: DemoAttachment[]) {
+  if (!attachments.length) return ''
+
+  return attachments
+    .map((attachment, index) => {
+      const lines = [
+        `${index + 1}. ${attachment.name}`,
+        `   - 类型：${attachment.type}`,
+        `   - 大小：${formatFileSize(attachment.size)}`,
+      ]
+
+      if (attachment.textExcerpt) {
+        lines.push(
+          `   - 文本摘录${attachment.truncated ? '（已截断）' : ''}：\n${attachment.textExcerpt}`,
+        )
+      }
+
+      if (attachment.kind === 'image') {
+        lines.push('   - 图片仅作为本地预览，当前请求只包含文件元数据。')
+      }
+
+      return lines.join('\n')
+    })
+    .join('\n')
+}
+
+function buildMessageContentForAI(message: DemoMessageRecord) {
+  const content = message.content?.trim() ?? ''
+  const attachmentPrompt = buildAttachmentPrompt(message.attachments ?? [])
+
+  if (!attachmentPrompt) return content
+
+  return [content, `附件信息：\n${attachmentPrompt}`]
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+function AttachmentIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="18"
+      viewBox="0 0 24 24"
+      width="18"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="m21.4 11.6-8.5 8.5a6 6 0 0 1-8.5-8.5l8.7-8.7a4 4 0 0 1 5.7 5.7l-8.7 8.7a2 2 0 0 1-2.8-2.8l8.1-8.1"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  )
+}
+
+function AttachmentList({
+  attachments,
+  onRemove,
+}: {
+  attachments: DemoAttachment[]
+  onRemove?: (id: string) => void
+}) {
+  if (!attachments.length) return null
+
+  return (
+    <div className="llm-demo-chat__attachments">
+      {attachments.map((attachment) => (
+        <div className="llm-demo-chat__attachment" key={attachment.id}>
+          <div className="llm-demo-chat__attachment-preview">
+            {attachment.kind === 'image' && attachment.url ? (
+              <img alt="" src={attachment.url} />
+            ) : (
+              <span className="llm-demo-chat__attachment-icon">
+                <AttachmentIcon />
+              </span>
+            )}
+          </div>
+          <div className="llm-demo-chat__attachment-meta">
+            <span className="llm-demo-chat__attachment-name">
+              {attachment.name}
+            </span>
+            <span className="llm-demo-chat__attachment-size">
+              {attachment.kind === 'image' ? '图片' : '文件'} ·{' '}
+              {formatFileSize(attachment.size)}
+            </span>
+          </div>
+          {onRemove ? (
+            <button
+              aria-label={`移除 ${attachment.name}`}
+              className="llm-demo-chat__attachment-remove"
+              onClick={() => onRemove(attachment.id)}
+              type="button"
+            >
+              ×
+            </button>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 function createReasoningItems(loading = false): ThoughtItem[] {
   return [
@@ -291,17 +540,17 @@ function updateConversationMessage(
   }
 }
 
-function createAIHistory(messages: MessageRecord[]): AIStreamMessage[] {
+function createAIHistory(messages: DemoMessageRecord[]): AIStreamMessage[] {
   return messages
     .filter(
       (message) =>
         (message.role === 'user' || message.role === 'assistant') &&
         !message.loading &&
-        Boolean(message.content?.trim()),
+        Boolean(buildMessageContentForAI(message)),
     )
     .map((message) => ({
       role: message.role as AIStreamMessage['role'],
-      content: message.content?.trim() ?? '',
+      content: buildMessageContentForAI(message),
     }))
     .slice(-4)
 }
@@ -446,6 +695,10 @@ export function AIConversationDemo({
     useState<MessageStore>(initialMessages)
   const [reasoningStore, setReasoningStore] = useState<ReasoningStore>({})
   const [composerValue, setComposerValue] = useState('')
+  const [pendingAttachments, setPendingAttachments] = useState<
+    DemoAttachment[]
+  >([])
+  const [voiceActive, setVoiceActive] = useState(false)
   const [streamingTarget, setStreamingTarget] = useState<{
     conversationId: string
     messageId: string
@@ -453,6 +706,11 @@ export function AIConversationDemo({
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const messagesViewportRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
+  const voiceBaseTextRef = useRef('')
+  const attachmentUrlsRef = useRef<Set<string>>(new Set())
   const requestSeqRef = useRef(0)
   const { state, start, cancel } = useStream()
   const activeMessages = useMemo(
@@ -462,9 +720,10 @@ export function AIConversationDemo({
   const activeMessageSignature = activeMessages
     .map(
       (message) =>
-        `${message.id}:${message.content?.length ?? 0}:${message.loading ? '1' : '0'}`,
+        `${message.id}:${message.content?.length ?? 0}:${message.attachments?.length ?? 0}:${message.loading ? '1' : '0'}`,
     )
     .join('|')
+  const canSend = Boolean(composerValue.trim()) || pendingAttachments.length > 0
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -488,6 +747,16 @@ export function AIConversationDemo({
 
     viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' })
   }, [activeMessageSignature])
+
+  useEffect(() => {
+    const attachmentUrls = attachmentUrlsRef.current
+
+    return () => {
+      recognitionRef.current?.abort()
+      attachmentUrls.forEach((url) => URL.revokeObjectURL(url))
+      attachmentUrls.clear()
+    }
+  }, [])
 
   const pushNotification = (
     type: NotificationItem['type'],
@@ -538,6 +807,10 @@ export function AIConversationDemo({
   const handleDeleteConversation = (id: string) => {
     setConversations((items) => items.filter((item) => item.id !== id))
     setMessagesByConversation((items) => {
+      items[id]?.forEach((message) => {
+        message.attachments?.forEach(revokeAttachmentUrl)
+      })
+
       const nextMessages = { ...items }
 
       delete nextMessages[id]
@@ -578,19 +851,177 @@ export function AIConversationDemo({
     pushNotification('success', '已填入提示词', item.title)
   }
 
-  const handlePrefixAction = (action: SenderPrefixAction) => {
-    const actionText: Record<SenderPrefixAction, string> = {
-      upload: '可以继续补充附件内容。',
-      image: '可以描述图片里的关键细节。',
-      search: '可以把需要查找的主题写进输入框。',
-      reasoning: '下一条回复会更强调推理过程。',
+  function revokeAttachmentUrl(attachment: DemoAttachment) {
+    if (!attachment.url) return
+
+    URL.revokeObjectURL(attachment.url)
+    attachmentUrlsRef.current.delete(attachment.url)
+  }
+
+  const handleRemovePendingAttachment = (id: string) => {
+    setPendingAttachments((attachments) => {
+      const target = attachments.find((attachment) => attachment.id === id)
+
+      if (target) revokeAttachmentUrl(target)
+
+      return attachments.filter((attachment) => attachment.id !== id)
+    })
+  }
+
+  const handleFilesSelected = async (
+    event: ChangeEvent<HTMLInputElement>,
+    kind: AttachmentKind,
+  ) => {
+    const files = Array.from(event.currentTarget.files ?? [])
+
+    event.currentTarget.value = ''
+
+    if (!files.length) return
+
+    const availableSlots = maxPendingAttachments - pendingAttachments.length
+
+    if (availableSlots <= 0) {
+      pushNotification('error', `最多同时添加 ${maxPendingAttachments} 个附件`)
+      return
     }
 
-    pushNotification('success', actionText[action])
+    const selectedFiles = files.slice(0, availableSlots)
+    const oversizedFiles = selectedFiles.filter(
+      (file) => file.size > maxAttachmentSize,
+    )
+    const validFiles = selectedFiles.filter(
+      (file) => file.size <= maxAttachmentSize,
+    )
+
+    if (files.length > availableSlots) {
+      pushNotification('error', `最多同时添加 ${maxPendingAttachments} 个附件`)
+    }
+
+    if (oversizedFiles.length) {
+      pushNotification('error', '部分附件超过 10MB，已跳过')
+    }
+
+    if (!validFiles.length) return
+
+    try {
+      const nextAttachments = await Promise.all(
+        validFiles.map((file) => createAttachmentFromFile(file, kind)),
+      )
+
+      nextAttachments.forEach((attachment) => {
+        if (attachment.url) attachmentUrlsRef.current.add(attachment.url)
+      })
+      setPendingAttachments((attachments) => [
+        ...attachments,
+        ...nextAttachments,
+      ])
+      pushNotification('success', `已添加 ${nextAttachments.length} 个附件`)
+    } catch {
+      pushNotification('error', '读取附件失败，请重试')
+    }
+  }
+
+  const handlePrefixAction = (action: SenderPrefixAction) => {
+    if (action === 'upload') {
+      fileInputRef.current?.click()
+      return
+    }
+
+    if (action === 'image') {
+      imageInputRef.current?.click()
+      return
+    }
+
+    const actionText =
+      action === 'search'
+        ? '可以把需要查找的主题写进输入框。'
+        : '下一条回复会更强调推理过程。'
+
+    pushNotification('success', actionText)
+  }
+
+  const handleVoiceClick = () => {
+    const activeRecognition = recognitionRef.current
+
+    if (activeRecognition) {
+      activeRecognition.stop()
+      return
+    }
+
+    const speechWindow = window as SpeechRecognitionWindow
+    const SpeechRecognition =
+      speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition
+
+    if (!SpeechRecognition) {
+      pushNotification(
+        'error',
+        '当前浏览器不支持语音识别',
+        '请使用 Chrome/Edge 或手动输入。',
+      )
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+
+    voiceBaseTextRef.current = composerValue.trim()
+    recognition.lang = 'zh-CN'
+    recognition.continuous = false
+    recognition.interimResults = true
+    recognition.onresult = (event) => {
+      let transcript = ''
+
+      for (let index = 0; index < event.results.length; index += 1) {
+        const result = event.results[index]
+        const alternative = result?.[0]
+
+        if (alternative?.transcript) {
+          transcript += alternative.transcript
+        }
+      }
+
+      const baseText = voiceBaseTextRef.current
+      const nextValue = [baseText, transcript.trim()].filter(Boolean).join(' ')
+
+      setComposerValue(nextValue)
+    }
+    recognition.onerror = () => {
+      setVoiceActive(false)
+      recognitionRef.current = null
+      pushNotification('error', '语音识别失败，请检查麦克风权限')
+    }
+    recognition.onend = () => {
+      setVoiceActive(false)
+      recognitionRef.current = null
+    }
+
+    recognitionRef.current = recognition
+    setVoiceActive(true)
+
+    try {
+      recognition.start()
+      pushNotification('success', '正在听写语音')
+    } catch {
+      setVoiceActive(false)
+      recognitionRef.current = null
+      pushNotification('error', '无法启动语音识别')
+    }
   }
 
   const handleSend = (message: string) => {
-    if (!activeConversationId) return
+    if (
+      !activeConversationId ||
+      (!message.trim() && !pendingAttachments.length)
+    ) {
+      return
+    }
+
+    const attachments = [...pendingAttachments]
+    const displayMessage =
+      message.trim() ||
+      `已上传 ${attachments.length} 个附件，请结合附件内容回答。`
+    const aiPrompt = [displayMessage, buildAttachmentPrompt(attachments)]
+      .filter(Boolean)
+      .join('\n\n')
 
     if (streamingTarget) {
       requestSeqRef.current += 1
@@ -606,15 +1037,16 @@ export function AIConversationDemo({
       setStreamingTarget(null)
     }
 
-    const userMessage: MessageRecord = {
+    const userMessage: DemoMessageRecord = {
       id: createMessageId('user'),
       role: 'user',
-      content: message,
+      content: displayMessage,
       timestamp: getCurrentTime(),
       status: 'sent',
+      ...(attachments.length && { attachments }),
     }
     const assistantMessageId = createMessageId('assistant')
-    const assistantMessage: MessageRecord = {
+    const assistantMessage: DemoMessageRecord = {
       id: assistantMessageId,
       role: 'assistant',
       content: '',
@@ -635,12 +1067,13 @@ export function AIConversationDemo({
         conversation.id === activeConversationId
           ? {
               ...conversation,
-              lastMessage: message,
+              lastMessage: displayMessage,
               timestamp: getCurrentTime(),
             }
           : conversation,
       ),
     )
+    setPendingAttachments([])
     pushNotification('loading', '正在生成回复', '你可以随时停止生成。')
     const nextStreamingTarget = {
       conversationId: activeConversationId,
@@ -702,7 +1135,7 @@ export function AIConversationDemo({
       pushNotification('success', '回复已完成')
     }
 
-    createAIResponseStreamWithReasoning(message, history, {
+    createAIResponseStreamWithReasoning(aiPrompt, history, {
       onReasoning: (reasoningText) => {
         if (!isActiveRequest()) return
 
@@ -822,7 +1255,7 @@ export function AIConversationDemo({
       },
       onError: () => {
         // Fallback to regular stream
-        void createDemoResponseStream(message, history, forceMock)
+        void createDemoResponseStream(aiPrompt, history, forceMock)
           .then((generator) =>
             start(generator, {
               onToken: (nextContent) => {
@@ -961,7 +1394,25 @@ export function AIConversationDemo({
     pushNotification('success', '已停止生成')
   }
 
-  const handleAction = (key: string) => {
+  const handleAction = async (key: string, message: DemoMessageRecord) => {
+    if (key === 'copy') {
+      const content = message.content?.trim()
+
+      if (!content) {
+        pushNotification('error', '没有可复制内容')
+        return
+      }
+
+      try {
+        await navigator.clipboard.writeText(content)
+        pushNotification('success', '已复制回复')
+      } catch {
+        pushNotification('error', '复制失败，请检查浏览器剪贴板权限')
+      }
+
+      return
+    }
+
     if (key !== 'regenerate') {
       pushNotification('success', '操作已记录')
       return
@@ -969,7 +1420,7 @@ export function AIConversationDemo({
 
     const lastUserMessage = [...activeMessages]
       .reverse()
-      .find((message) => message.role === 'user')
+      .find((item) => item.role === 'user')
 
     if (lastUserMessage?.content) {
       handleSend(lastUserMessage.content)
@@ -1159,39 +1610,55 @@ export function AIConversationDemo({
               ariaLabel="AI 对话消息"
               emptyText="选择一个提示词，或直接输入你想讨论的问题。"
               messages={activeMessages}
-              renderMessage={(message) => (
-                <Bubble
-                  role={message.role}
-                  {...(message.loading !== undefined && {
-                    loading: message.loading,
-                  })}
-                  {...(message.status && { status: message.status })}
-                  {...(message.timestamp && { timestamp: message.timestamp })}
-                  actions={
-                    message.role === 'assistant' && message.content ? (
-                      <Actions
-                        items={assistantActions}
-                        onAction={handleAction}
-                        size="sm"
-                      />
-                    ) : undefined
-                  }
-                >
-                  {message.role === 'assistant' ? (
-                    <div className="llm-demo-chat__assistant-content">
-                      {renderAssistantAddons(message)}
-                      {message.content ? (
-                        <Mark
-                          content={message.content}
-                          streaming={message.loading}
+              renderMessage={(message) => {
+                const demoMessage = message as DemoMessageRecord
+
+                return (
+                  <Bubble
+                    role={demoMessage.role}
+                    {...(demoMessage.loading !== undefined && {
+                      loading: demoMessage.loading,
+                    })}
+                    {...(demoMessage.status && { status: demoMessage.status })}
+                    {...(demoMessage.timestamp && {
+                      timestamp: demoMessage.timestamp,
+                    })}
+                    actions={
+                      demoMessage.role === 'assistant' &&
+                      demoMessage.content ? (
+                        <Actions
+                          items={assistantActions}
+                          onAction={(key) =>
+                            void handleAction(key, demoMessage)
+                          }
+                          size="sm"
                         />
-                      ) : null}
-                    </div>
-                  ) : (
-                    message.content
-                  )}
-                </Bubble>
-              )}
+                      ) : undefined
+                    }
+                  >
+                    {demoMessage.role === 'assistant' ? (
+                      <div className="llm-demo-chat__assistant-content">
+                        {renderAssistantAddons(demoMessage)}
+                        {demoMessage.content ? (
+                          <Mark
+                            content={demoMessage.content}
+                            streaming={demoMessage.loading}
+                          />
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="llm-demo-chat__user-content">
+                        {demoMessage.content ? (
+                          <div>{demoMessage.content}</div>
+                        ) : null}
+                        <AttachmentList
+                          attachments={demoMessage.attachments ?? []}
+                        />
+                      </div>
+                    )}
+                  </Bubble>
+                )
+              }}
             />
           </div>
 
@@ -1205,7 +1672,27 @@ export function AIConversationDemo({
             </div>
 
             <div className="llm-demo-chat__composer" ref={composerRef}>
+              <input
+                className="llm-demo-chat__file-input"
+                multiple
+                onChange={(event) => void handleFilesSelected(event, 'file')}
+                ref={fileInputRef}
+                type="file"
+              />
+              <input
+                accept="image/*"
+                className="llm-demo-chat__file-input"
+                multiple
+                onChange={(event) => void handleFilesSelected(event, 'image')}
+                ref={imageInputRef}
+                type="file"
+              />
+              <AttachmentList
+                attachments={pendingAttachments}
+                onRemove={handleRemovePendingAttachment}
+              />
               <Sender
+                canSend={canSend}
                 loading={state === 'streaming'}
                 onCancel={handleCancel}
                 onChange={setComposerValue}
@@ -1214,11 +1701,10 @@ export function AIConversationDemo({
                 }
                 onPrefixAction={handlePrefixAction}
                 onSend={handleSend}
-                onVoiceClick={() =>
-                  pushNotification('success', '可以开始语音输入')
-                }
+                onVoiceClick={handleVoiceClick}
                 placeholder="输入一个问题，按 Enter 发送..."
                 value={composerValue}
+                voiceActive={voiceActive}
               />
             </div>
           </div>

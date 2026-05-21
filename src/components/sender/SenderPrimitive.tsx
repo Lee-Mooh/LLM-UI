@@ -24,6 +24,8 @@ export interface SenderPrimitiveProps {
   onVoiceClick?: () => void
   loading?: boolean
   disabled?: boolean
+  canSend?: boolean
+  voiceActive?: boolean
   placeholder?: string
   model?: string
   modelOptions?: SenderModelOption[]
@@ -178,6 +180,8 @@ export function SenderPrimitive({
   onVoiceClick,
   loading = false,
   disabled = false,
+  canSend,
+  voiceActive = false,
   placeholder = '输入消息...',
   model,
   modelOptions = defaultModelOptions,
@@ -196,6 +200,7 @@ export function SenderPrimitive({
   const [selectedModel, setSelectedModel] = useState(
     model ?? modelOptions[0]?.value ?? '',
   )
+  const sendable = canSend ?? Boolean(message.trim())
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -239,7 +244,7 @@ export function SenderPrimitive({
   const handleSend = () => {
     const nextMessage = message.trim()
 
-    if (!nextMessage || disabled || loading) return
+    if (!sendable || disabled || loading) return
 
     onSend?.(nextMessage)
     handleMessageChange('')
@@ -365,10 +370,13 @@ export function SenderPrimitive({
                   ) : null}
                 </div>
                 <button
-                  aria-label="语音输入"
+                  aria-label={voiceActive ? '停止语音输入' : '语音输入'}
+                  aria-pressed={voiceActive}
                   className="llm-sender__suffix-button"
+                  data-active={voiceActive ? '' : undefined}
                   disabled={disabled}
                   onClick={handleVoiceClick}
+                  title={voiceActive ? '停止语音输入' : '语音输入'}
                   type="button"
                 >
                   <VoiceIcon />
@@ -380,7 +388,7 @@ export function SenderPrimitive({
             aria-label={loading ? '停止生成' : '发送消息'}
             className="llm-sender__send"
             data-loading={loading ? '' : undefined}
-            disabled={disabled || (!loading && !message.trim())}
+            disabled={disabled || (!loading && !sendable)}
             onClick={handleAction}
             type="button"
           >

@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+} from 'react'
 
 import { Actions } from '../actions/Actions'
 import { createPresetActions } from '../actions/ActionsPreset'
@@ -17,7 +24,11 @@ import {
 import { Prompts, type PromptItem } from '../prompts/Prompts'
 import { Sender, type SenderPrefixAction } from '../sender/Sender'
 import { Think } from '../think/Think'
-import { Thought, type ThoughtItem } from '../thought/Thought'
+import {
+  Thought,
+  type ThoughtItem,
+  type ThoughtStatus,
+} from '../thought/Thought'
 import { useStream } from '../../hooks/useStream'
 import { useTheme } from '../../hooks/useTheme'
 import { mockStream } from '../../utils/stream'
@@ -674,7 +685,7 @@ function ThemeToggle({
       onClick={handleClick}
       type="button"
     >
-      {mode === 'light' ? <MoonIcon /> : <SunIcon />}
+      {mode === 'light' ? <SunIcon /> : <MoonIcon />}
     </button>
   )
 }
@@ -759,22 +770,24 @@ export function AIConversationDemo({
   }, [])
 
   const pushNotification = (
-    type: NotificationItem['type'],
-    title: string,
-    description?: string,
+    type: NonNullable<NotificationItem['type']>,
+    title: ReactNode,
+    description?: ReactNode,
   ) => {
     const id = createMessageId('notice')
 
+    const nextItem: NotificationItem = {
+      id,
+      type,
+      title,
+      duration: 2400,
+      showProgress: true,
+      ...(description !== undefined ? { description } : {}),
+    }
+
     setNotifications((items) =>
       [
-        {
-          id,
-          type,
-          title,
-          duration: 2400,
-          showProgress: true,
-          ...(description && { description }),
-        },
+        nextItem,
         ...(type === 'loading'
           ? items
           : items.filter((item) => item.type !== 'loading')),
@@ -1439,22 +1452,38 @@ export function AIConversationDemo({
           : reasoning.phase === 'connecting'
             ? '正在连接模型，等待模型返回问题分析。'
             : '等待模型返回问题分析。')
+      const defaultExpandedKeys = message.loading
+        ? [
+            hasReasoningSteps
+              ? `step-${reasoning.steps.length - 1}`
+              : reasoning.phase === 'responding'
+                ? 'respond'
+                : reasoning.phase === 'reasoning'
+                  ? 'reason'
+                  : 'connect',
+          ]
+        : undefined
       const thoughtItems: ThoughtItem[] = hasReasoningSteps
-        ? reasoning.steps.map((step, index) => ({
-            key: `step-${index}`,
-            title:
-              reasoning.phase === 'reasoning'
-                ? `推理片段 ${index + 1}`
-                : `步骤 ${index + 1}`,
-            status:
+        ? reasoning.steps.map((step, index) => {
+            const status: ThoughtStatus =
               message.loading && index === reasoning.steps.length - 1
                 ? 'loading'
-                : 'success',
-            content: step,
-            collapsible: true,
-            defaultOpen:
-              message.loading && index === reasoning.steps.length - 1,
-          }))
+                : 'success'
+
+            return {
+              key: `step-${index}`,
+              title:
+                reasoning.phase === 'reasoning'
+                  ? `推理片段 ${index + 1}`
+                  : `步骤 ${index + 1}`,
+              status,
+              content: step,
+              collapsible: true,
+              defaultOpen:
+                Boolean(message.loading) &&
+                index === reasoning.steps.length - 1,
+            }
+          })
         : [
             {
               key: 'connect',
@@ -1513,19 +1542,7 @@ export function AIConversationDemo({
           />
           <Thought
             compact
-            defaultExpandedKeys={
-              message.loading
-                ? [
-                    hasReasoningSteps
-                      ? `step-${reasoning.steps.length - 1}`
-                      : reasoning.phase === 'responding'
-                        ? 'respond'
-                        : reasoning.phase === 'reasoning'
-                          ? 'reason'
-                          : 'connect',
-                  ]
-                : undefined
-            }
+            {...(defaultExpandedKeys ? { defaultExpandedKeys } : {})}
             items={thoughtItems}
             title={hasReasoningSteps ? '推理链' : '生成链路'}
           />
@@ -1623,18 +1640,19 @@ export function AIConversationDemo({
                     {...(demoMessage.timestamp && {
                       timestamp: demoMessage.timestamp,
                     })}
-                    actions={
-                      demoMessage.role === 'assistant' &&
-                      demoMessage.content ? (
-                        <Actions
-                          items={assistantActions}
-                          onAction={(key) =>
-                            void handleAction(key, demoMessage)
-                          }
-                          size="sm"
-                        />
-                      ) : undefined
-                    }
+                    {...(demoMessage.role === 'assistant' && demoMessage.content
+                      ? {
+                          actions: (
+                            <Actions
+                              items={assistantActions}
+                              onAction={(key) =>
+                                void handleAction(key, demoMessage)
+                              }
+                              size="sm"
+                            />
+                          ),
+                        }
+                      : {})}
                   >
                     {demoMessage.role === 'assistant' ? (
                       <div className="llm-demo-chat__assistant-content">
@@ -1642,7 +1660,7 @@ export function AIConversationDemo({
                         {demoMessage.content ? (
                           <Mark
                             content={demoMessage.content}
-                            streaming={demoMessage.loading}
+                            streaming={Boolean(demoMessage.loading)}
                           />
                         ) : null}
                       </div>

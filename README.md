@@ -162,6 +162,43 @@ D:\LLM-UI
 
 ## 真实 AI 接入
 
+```mermaid
+flowchart TD
+  A[用户在 Sender 输入问题] --> B[按 Enter 或点击发送]
+  B --> C[AIConversationDemo.handleSend]
+  C --> D[创建 user message]
+  C --> E[创建 assistant 占位 message loading=true]
+  D --> F[更新 messagesByConversation]
+  E --> F
+  F --> G[MessageList 重新渲染]
+  G --> H[页面出现用户消息和思考中的 assistant 气泡]
+
+  C --> I[整理历史消息 createAIHistory]
+  I --> J[createAIResponseStreamWithReasoning]
+  J --> K[fetch POST /api/chat]
+  K --> L[Vercel Serverless api/chat.ts]
+  L --> M[读取环境变量 DEEPSEEK_API_KEY]
+  M --> N[请求 DeepSeek /chat/completions stream=true]
+  N --> O[DeepSeek 返回 OpenAI-style SSE]
+  O --> P[api/chat.ts 解析 delta]
+  P --> Q{delta 类型}
+  Q -->|reasoning_content| R[写出 data: type=reasoning]
+  Q -->|content| S[写出 data: type=content]
+  Q -->|DONE| T[写出 data: type=done]
+
+  R --> U[前端 processSSEStream 解析]
+  S --> U
+  T --> U
+  U --> V{chunk.type}
+  V -->|reasoning| W[onReasoning 更新 reasoningStore]
+  V -->|content| X[onContent 更新 assistant message content]
+  V -->|done| Y[onComplete 收尾 loading=false]
+
+  W --> Z[Think / Thought 展示推理过程]
+  X --> AA[Mark 渲染 Markdown 正文]
+  Y --> AB[Notification 提示回复完成]
+```
+
 推荐把模型 API Key 只放在 Vercel 服务端环境变量中，前端只调用同源后端接口：
 
 ```txt
